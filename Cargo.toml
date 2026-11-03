@@ -5,3 +5,5 @@ edition = "2024"
 description = "A Rust TOP"
 
 [dependencies]
+anyhow = "1.0.104"
+clap = { version = "4.6.7", features = ["derive"] }

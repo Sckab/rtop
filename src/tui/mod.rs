@@ -3,9 +3,12 @@ use ratatui::{
     DefaultTerminal, Frame,
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
-    widgets::{Block, BorderType, Paragraph, Row, Table, Widget},
+    widgets::{Paragraph, Widget},
 };
 use std::io;
+
+mod cpu;
+mod memory;
 
 #[derive(Default, Debug)]
 pub struct Memory {
@@ -15,14 +18,15 @@ pub struct Memory {
     total: u64,
 }
 
-#[derive(Debug)]
 pub struct App {
     quit: bool,
     system: sysinfo::System,
     host_name: String,
-    name: String,
+    os_name: String,
+    user_name: String,
     cpu_usage: f32,
     memory: Memory,
+    size_formatter: Box<dyn Fn(u64) -> String>,
 }
 
 impl App {
@@ -31,14 +35,23 @@ impl App {
             quit: false,
             system: sysinfo::System::new()?,
             host_name: sysinfo::System::host_name()?,
-            name: sysinfo::System::name()?,
+            os_name: sysinfo::System::name()?,
             cpu_usage: 0.0,
             memory: Memory::default(),
+            size_formatter: Box::new(humansize::make_format(humansize::DECIMAL)),
+
+            #[cfg(unix)]
+            user_name: std::env::var("USER").unwrap_or("unkown".to_string()),
+
+            #[cfg(windows)]
+            user_name: std::env::var("USERNAME").unwrap_or("unkown".to_string()),
         })
     }
 
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
         while !self.quit {
+            std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+
             self.system.refresh_all();
 
             self.cpu_usage = self.system.global_cpu_usage();
@@ -91,27 +104,13 @@ impl Widget for &App {
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
             .split(layout[1]);
 
-        Paragraph::new(format!("{} | {}", self.host_name, self.name)).render(layout[0], buf);
-        Paragraph::new(format!("CPU usage: {}", self.cpu_usage))
-            .block(Block::bordered().border_type(BorderType::Rounded))
-            .render(info_layout[0], buf);
+        Paragraph::new(format!(
+            "{}@{} | {}",
+            self.user_name, self.host_name, self.os_name
+        ))
+        .render(layout[0], buf);
 
-        let table_header = Row::new(["Memory", "Value"]);
-
-        let rows = [
-            Row::new(["Used".to_string(), self.memory.used.to_string()]),
-            Row::new(["Available".to_string(), self.memory.available.to_string()]),
-            Row::new(["Free".to_string(), self.memory.free.to_string()]),
-            Row::new(["Total".to_string(), self.memory.total.to_string()]),
-        ];
-
-        let widths = [Constraint::Percentage(50), Constraint::Percentage(50)];
-
-        let table = Table::new(rows, widths)
-            .header(table_header)
-            .column_spacing(1)
-            .block(Block::bordered().border_type(BorderType::Rounded));
-
-        table.render(info_layout[1], buf);
+        self.render_cpu_usage(info_layout[0], buf);
+        self.render_memory_usage(info_layout[1], buf);
     }
 }

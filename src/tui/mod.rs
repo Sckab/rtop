@@ -10,34 +10,40 @@ use std::io;
 mod cpu;
 mod memory;
 
-#[derive(Default, Debug)]
-pub struct Memory {
-    available: u64,
-    used: u64,
-    free: u64,
-    total: u64,
+#[derive(Debug)]
+pub struct CpuStats {
+    pub number: usize,
+    pub usage: f32,
+}
+
+#[derive(Debug, Default)]
+pub struct SystemStats {
+    pub global_cpu_usage: f32,
+    pub memory_used: u64,
+    pub memory_available: u64,
+    pub memory_free: u64,
+    pub memory_total: u64,
+    pub cpus: Vec<CpuStats>,
+}
+
+pub struct SystemInfo {
+    host_name: String,
+    os_name: String,
+    user_name: String,
+    size_formatter: Box<dyn Fn(u64) -> String>,
 }
 
 pub struct App {
     quit: bool,
-    system: sysinfo::System,
-    host_name: String,
-    os_name: String,
-    user_name: String,
-    cpu_usage: f32,
-    memory: Memory,
-    size_formatter: Box<dyn Fn(u64) -> String>,
+    system_info: SystemInfo,
+    stats: SystemStats,
 }
 
 impl App {
     pub fn new() -> anyhow::Result<Self> {
-        Ok(Self {
-            quit: false,
-            system: sysinfo::System::new()?,
+        let system_info = SystemInfo {
             host_name: sysinfo::System::host_name()?,
             os_name: sysinfo::System::name()?,
-            cpu_usage: 0.0,
-            memory: Memory::default(),
             size_formatter: Box::new(humansize::make_format(humansize::DECIMAL)),
 
             #[cfg(unix)]
@@ -45,23 +51,66 @@ impl App {
 
             #[cfg(windows)]
             user_name: std::env::var("USERNAME").unwrap_or("unkown".to_string()),
+        };
+
+        Ok(Self {
+            quit: false,
+            system_info,
+            stats: SystemStats::default(),
         })
     }
 
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
+        let (tx, rx) = std::sync::mpsc::channel::<SystemStats>();
+
+        // we need to create a separate thread as the std::thread::sleep() will block the user input events
+        std::thread::spawn(move || {
+            let mut system = match sysinfo::System::new() {
+                Ok(system) => system,
+                Err(error) => {
+                    eprintln!("Failed to initialize system: {error}");
+                    return;
+                }
+            };
+
+            loop {
+                system.refresh_all();
+
+                let mut cpus: Vec<CpuStats> = vec![];
+
+                for (mut index, cpu) in system.cpus().iter().enumerate() {
+                    index += 1;
+
+                    cpus.push(CpuStats {
+                        number: index,
+                        usage: cpu.usage(),
+                    });
+                }
+
+                let stats = SystemStats {
+                    global_cpu_usage: system.global_cpu_usage(),
+                    memory_used: system.used_memory(),
+                    memory_available: system.available_memory(),
+                    memory_free: system.free_memory(),
+                    memory_total: system.total_memory(),
+                    cpus,
+                };
+
+                if tx.send(stats).is_err() {
+                    break;
+                }
+
+                std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+            }
+        });
+
         while !self.quit {
-            std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+            while let Ok(stats) = rx.try_recv() {
+                self.stats = stats;
+            }
 
-            self.system.refresh_all();
-
-            self.cpu_usage = self.system.global_cpu_usage();
-            self.memory.used = self.system.used_memory();
-            self.memory.available = self.system.available_memory();
-            self.memory.free = self.system.free_memory();
-            self.memory.total = self.system.total_memory();
-
-            terminal.draw(|frame| self.draw(frame))?;
             self.handle_events()?;
+            terminal.draw(|frame| self.draw(frame))?;
         }
 
         Ok(())
@@ -86,7 +135,7 @@ impl App {
 
     fn handle_key_event(&mut self, key_event: KeyEvent) {
         match key_event.code {
-            KeyCode::Char('q') => self.quit = true,
+            KeyCode::Char('q') | KeyCode::Esc => self.quit = true,
             _ => {}
         }
     }
@@ -106,7 +155,7 @@ impl Widget for &App {
 
         Paragraph::new(format!(
             "{}@{} | {}",
-            self.user_name, self.host_name, self.os_name
+            self.system_info.user_name, self.system_info.host_name, self.system_info.os_name
         ))
         .render(layout[0], buf);
 

@@ -7,15 +7,21 @@ use ratatui::{
 impl super::App {
     pub fn render_memory_usage(&self, area: Rect, buf: &mut Buffer) {
         let rows = [
-            Row::new(["Used".to_string(), (self.size_formatter)(self.memory.used)]),
+            Row::new([
+                "Used".to_string(),
+                (self.system_info.size_formatter)(self.stats.memory_used),
+            ]),
             Row::new([
                 "Available".to_string(),
-                (self.size_formatter)(self.memory.available),
+                (self.system_info.size_formatter)(self.stats.memory_available),
             ]),
-            Row::new(["Free".to_string(), (self.size_formatter)(self.memory.free)]),
+            Row::new([
+                "Free".to_string(),
+                (self.system_info.size_formatter)(self.stats.memory_free),
+            ]),
             Row::new([
                 "Total".to_string(),
-                (self.size_formatter)(self.memory.total),
+                (self.system_info.size_formatter)(self.stats.memory_total),
             ]),
         ];
 

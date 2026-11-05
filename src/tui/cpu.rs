@@ -8,26 +8,26 @@ impl super::App {
     pub fn render_cpu_usage(&self, area: Rect, buf: &mut Buffer) {
         let mut rows: Vec<Row> = vec![];
 
-        for (mut index, cpu) in self.system.cpus().iter().enumerate() {
-            index += 1;
-
+        for cpu in &self.stats.cpus {
             rows.push(Row::new([
-                format!("CPU {index}"),
-                format!("{:.0}%", cpu.usage()),
+                format!("CPU {}", cpu.number),
+                format!("{:.0}%", cpu.usage),
             ]));
         }
 
         // 4 is the length of "CPU ", and this log is to get the number of digits of the cpu
         // numbers, so we get correct spacing
-        let mut first_row_length = 4 + rows.len().ilog10() + 1;
+        let mut first_row_length = 4 + rows.len().max(1).ilog10() + 1;
+
+        let total_string = "Total".to_string();
 
         rows.push(Row::new([
-            "Total: ".to_string(),
-            format!("{:.0}%", self.cpu_usage),
+            total_string.to_string(),
+            format!("{:.0}%", self.stats.global_cpu_usage),
         ]));
 
-        if "Total: ".len() > first_row_length as usize {
-            first_row_length = "Total: ".len() as u32;
+        if total_string.len() > first_row_length as usize {
+            first_row_length = total_string.len() as u32;
         }
 
         let block = Block::bordered()

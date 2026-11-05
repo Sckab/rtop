@@ -1,32 +1,30 @@
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
-use ratatui::{
-    DefaultTerminal, Frame,
-    buffer::Buffer,
-    layout::{Constraint, Direction, Layout, Rect},
-    widgets::{Paragraph, Widget},
-};
+use crossterm::event::{self, Event, KeyEventKind};
+use ratatui::{DefaultTerminal, Frame};
 use std::io;
 
 mod cpu;
+mod handle_keys;
+mod help_menu;
 mod memory;
+mod render;
 
 #[derive(Debug)]
-pub struct CpuStats {
-    pub number: usize,
-    pub usage: f32,
+struct CpuStats {
+    number: usize,
+    usage: f32,
 }
 
 #[derive(Debug, Default)]
-pub struct SystemStats {
-    pub global_cpu_usage: f32,
-    pub memory_used: u64,
-    pub memory_available: u64,
-    pub memory_free: u64,
-    pub memory_total: u64,
-    pub cpus: Vec<CpuStats>,
+struct SystemStats {
+    global_cpu_usage: f32,
+    memory_used: u64,
+    memory_available: u64,
+    memory_free: u64,
+    memory_total: u64,
+    cpus: Vec<CpuStats>,
 }
 
-pub struct SystemInfo {
+struct SystemInfo {
     host_name: String,
     os_name: String,
     user_name: String,
@@ -35,6 +33,7 @@ pub struct SystemInfo {
 
 pub struct App {
     quit: bool,
+    show_help: bool,
     system_info: SystemInfo,
     stats: SystemStats,
 }
@@ -55,6 +54,7 @@ impl App {
 
         Ok(Self {
             quit: false,
+            show_help: false,
             system_info,
             stats: SystemStats::default(),
         })
@@ -131,35 +131,5 @@ impl App {
         }
 
         Ok(())
-    }
-
-    fn handle_key_event(&mut self, key_event: KeyEvent) {
-        match key_event.code {
-            KeyCode::Char('q') | KeyCode::Esc => self.quit = true,
-            _ => {}
-        }
-    }
-}
-
-impl Widget for &App {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(1), Constraint::Fill(1)])
-            .split(area);
-
-        let info_layout = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .split(layout[1]);
-
-        Paragraph::new(format!(
-            "{}@{} | {}",
-            self.system_info.user_name, self.system_info.host_name, self.system_info.os_name
-        ))
-        .render(layout[0], buf);
-
-        self.render_cpu_usage(info_layout[0], buf);
-        self.render_memory_usage(info_layout[1], buf);
     }
 }

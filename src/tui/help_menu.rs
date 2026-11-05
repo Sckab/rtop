@@ -1,28 +1,8 @@
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Rect},
     widgets::{Block, BorderType, Clear, Row, Table, Widget},
 };
-
-fn centered_rect(area: Rect, width: u16, height: u16) -> Rect {
-    let horizontal = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Fill(1),
-            Constraint::Length(width),
-            Constraint::Fill(1),
-        ])
-        .split(area);
-
-    Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Fill(1),
-            Constraint::Length(height),
-            Constraint::Fill(1),
-        ])
-        .split(horizontal[1])[1]
-}
 
 struct Key {
     pub name: String,
@@ -69,7 +49,10 @@ impl super::App {
 
         let table_width = column_widths.iter().sum::<usize>() + (COLUMN_SPACING * 3) + 2;
 
-        let popup_area = centered_rect(area, table_width as u16, (keys.len() + 2) as u16);
+        let popup_area = area.centered(
+            Constraint::Length(table_width as u16),
+            Constraint::Length((keys.len() + 2) as u16),
+        );
 
         let rows = keys.iter().map(|key| {
             Row::new([

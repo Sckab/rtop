@@ -53,7 +53,7 @@ impl super::App {
 
         Block::default()
             .borders(Borders::BOTTOM)
-            .merge_borders(MergeStrategy::Exact)
+            .merge_borders(MergeStrategy::Fuzzy)
             .render(layout[2], buf);
     }
 

@@ -13,7 +13,7 @@ impl Widget for &super::App {
 
         let info_layout = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .constraints([Constraint::Percentage(42), Constraint::Fill(1)])
             .split(layout[1]);
 
         let usage_layout = Layout::default()

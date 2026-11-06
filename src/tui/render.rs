@@ -12,9 +12,14 @@ impl Widget for &super::App {
             .split(area);
 
         let info_layout = Layout::default()
-            .direction(Direction::Horizontal)
+            .direction(Direction::Vertical)
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
             .split(layout[1]);
+
+        let usage_layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .split(info_layout[0]);
 
         let topbar_layout =
             Layout::horizontal([Constraint::Fill(1), Constraint::Length(8)]).split(layout[0]);
@@ -41,8 +46,9 @@ impl Widget for &super::App {
 
         Paragraph::new(formatted_time).render(topbar_layout[1], buf);
 
-        self.render_cpu_usage(info_layout[0], buf);
-        self.render_memory_usage(info_layout[1], buf);
+        self.render_cpu_usage(usage_layout[0], buf);
+        self.render_memory_usage(usage_layout[1], buf);
+        self.render_processes(info_layout[1], buf);
 
         if self.show_help {
             self.render_help_panel(area, buf);

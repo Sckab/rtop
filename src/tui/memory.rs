@@ -1,11 +1,13 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Rect},
-    widgets::{Block, BorderType, Row, Table, Widget},
+    widgets::{Row, Table, Widget},
 };
 
 impl super::App {
     pub fn render_memory_usage(&self, area: Rect, buf: &mut Buffer) {
+        let area = super::general::get_borderd_block(" Memory Usage ", area, buf);
+
         let rows = [
             Row::new([
                 "Used".to_string(),
@@ -25,7 +27,7 @@ impl super::App {
             ]),
         ];
 
-        let table = Table::new(
+        Table::new(
             rows,
             [
                 Constraint::Length("Available".len() as u16),
@@ -33,12 +35,6 @@ impl super::App {
             ],
         )
         .column_spacing(3)
-        .block(
-            Block::bordered()
-                .border_type(BorderType::Rounded)
-                .title(" Memory Usage "),
-        );
-
-        table.render(area, buf);
+        .render(area, buf);
     }
 }

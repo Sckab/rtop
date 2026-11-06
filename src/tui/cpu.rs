@@ -1,26 +1,67 @@
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Layout, Rect},
-    widgets::{Block, BorderType, Paragraph, Row, Table, Widget},
+    layout::{Constraint, Direction, Layout, Rect},
+    symbols::Marker,
+    widgets::{Axis, Chart, Dataset, GraphType, Paragraph, Row, Table, Widget},
 };
 
-impl super::App {
-    pub fn render_cpu_usage(&self, area: Rect, buf: &mut Buffer) {
-        let block = Block::bordered()
-            .border_type(BorderType::Rounded)
-            .title(" CPU Usage ");
+use std::collections::VecDeque;
 
-        let inner_area = block.inner(area);
-        block.render(area, buf);
+#[derive(Debug, Clone)]
+pub struct CpuStats {
+    pub number: usize,
+    pub usage: f32,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct Cpu {
+    pub global_usage: f32,
+    pub cpus: Vec<CpuStats>,
+    pub history: VecDeque<f64>,
+}
+
+impl super::App {
+    fn render_cpu_graphic(&self, stats: Cpu, area: Rect, buf: &mut Buffer) {
+        let points: Vec<(f64, f64)> = stats
+            .history
+            .iter()
+            .enumerate()
+            .map(|(i, usage)| {
+                let normalized = (*usage as f64 / 100.0) * area.height as f64;
+
+                (i as f64, normalized)
+            })
+            .collect();
+
+        let data = Dataset::default()
+            .marker(Marker::Braille)
+            .graph_type(GraphType::Line)
+            .data(&points.as_slice());
+
+        let x_axis = Axis::default().bounds([0.0, area.width as f64]);
+        let y_axis = Axis::default().bounds([0.0, area.height as f64]);
+
+        Chart::new(vec![data])
+            .x_axis(x_axis)
+            .y_axis(y_axis)
+            .render(area, buf);
+    }
+
+    pub fn render_cpu_usage(&self, area: Rect, buf: &mut Buffer) {
+        let cpu_stats = self.stats.cpu.clone();
+
+        let inner_area = super::general::get_borderd_block(" CPU Usage ", area, buf);
 
         let mut items: Vec<(String, String)> = Vec::new();
 
         let mut cpu_name_width = 0;
         let mut cpu_usage_width = 0;
 
-        for cpu in &self.stats.cpus {
-            let name = format!("CPU {}", cpu.number);
+        for cpu in &cpu_stats.cpus {
             let usage = format!("{:.0}%", cpu.usage);
+
+            let name = format!("CPU {}", cpu.number);
+            let usage = format!("{:>4}", usage);
 
             cpu_name_width = cpu_name_width.max(name.len());
             cpu_usage_width = cpu_usage_width.max(usage.len());
@@ -41,12 +82,22 @@ impl super::App {
             ((inner_area.width as usize + column_spacing) / (item_width + column_spacing)).max(1);
         let rows = items.len().div_ceil(columns);
 
-        let layout =
-            Layout::vertical([Constraint::Length((rows + 1) as u16), Constraint::Length(1)])
-                .split(inner_area);
+        let panel_layout = Layout::new(
+            Direction::Vertical,
+            [Constraint::Length((rows + 4) as u16), Constraint::Fill(1)],
+        )
+        .split(inner_area);
 
-        let table_area = layout[0];
-        let total_area = layout[1];
+        let table_layout =
+            Layout::vertical([Constraint::Length((rows + 2) as u16), Constraint::Fill(1)])
+                .split(panel_layout[0]);
+
+        let table_total_layout =
+            Layout::vertical([Constraint::Length((rows + 1) as u16), Constraint::Fill(1)])
+                .split(table_layout[0]);
+
+        let table_area = table_total_layout[0];
+        let total_area = table_total_layout[1];
 
         let table_layout = Layout::horizontal((0..columns).map(|_| Constraint::Fill(1)))
             .spacing(spacing as u16)
@@ -78,7 +129,9 @@ impl super::App {
             .render(table_layout[i], buf);
         }
 
-        Paragraph::new(format!("Total: {:.0}%", self.stats.global_cpu_usage))
+        Paragraph::new(format!("Total: {:.0}%", self.stats.cpu.global_usage))
             .render(total_area, buf);
+
+        self.render_cpu_graphic(cpu_stats, panel_layout[1], buf);
     }
 }

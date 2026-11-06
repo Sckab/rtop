@@ -1,27 +1,22 @@
 use crossterm::event::{self, Event, KeyEventKind};
 use ratatui::{DefaultTerminal, Frame};
-use std::io;
+use std::{collections::VecDeque, io};
 
 mod cpu;
+mod general;
 mod handle_keys;
 mod help_menu;
 mod memory;
+mod processes;
 mod render;
-
-#[derive(Debug)]
-struct CpuStats {
-    number: usize,
-    usage: f32,
-}
 
 #[derive(Debug, Default)]
 struct SystemStats {
-    global_cpu_usage: f32,
     memory_used: u64,
     memory_available: u64,
     memory_free: u64,
     memory_total: u64,
-    cpus: Vec<CpuStats>,
+    cpu: cpu::Cpu,
 }
 
 struct SystemInfo {
@@ -63,6 +58,8 @@ impl App {
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
         let (tx, rx) = std::sync::mpsc::channel::<SystemStats>();
 
+        let terminal_size = terminal.size()?;
+
         // we need to create a separate thread as the std::thread::sleep() will block the user input events
         std::thread::spawn(move || {
             let mut system = match sysinfo::System::new() {
@@ -73,27 +70,36 @@ impl App {
                 }
             };
 
+            let mut history: VecDeque<f64> = VecDeque::new();
+
             loop {
                 system.refresh_all();
 
-                let mut cpus: Vec<CpuStats> = vec![];
+                let mut cpus: Vec<cpu::CpuStats> = vec![];
 
-                for (mut index, cpu) in system.cpus().iter().enumerate() {
-                    index += 1;
-
-                    cpus.push(CpuStats {
-                        number: index,
+                for (index, cpu) in system.cpus().iter().enumerate() {
+                    cpus.push(cpu::CpuStats {
+                        number: index + 1,
                         usage: cpu.usage(),
                     });
                 }
 
+                if history.len() >= (terminal_size.width / 2) as usize {
+                    history.pop_front();
+                }
+
+                history.push_back(system.global_cpu_usage() as f64);
+
                 let stats = SystemStats {
-                    global_cpu_usage: system.global_cpu_usage(),
                     memory_used: system.used_memory(),
                     memory_available: system.available_memory(),
                     memory_free: system.free_memory(),
                     memory_total: system.total_memory(),
-                    cpus,
+                    cpu: cpu::Cpu {
+                        global_usage: system.global_cpu_usage(),
+                        cpus,
+                        history: history.clone(),
+                    },
                 };
 
                 if tx.send(stats).is_err() {

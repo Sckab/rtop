@@ -5,8 +5,6 @@ use ratatui::{
     widgets::{Axis, Chart, Dataset, GraphType, Paragraph, Row, Table, Widget},
 };
 
-use std::collections::VecDeque;
-
 #[derive(Debug, Clone)]
 pub struct CpuStats {
     pub number: usize,
@@ -17,13 +15,14 @@ pub struct CpuStats {
 pub struct Cpu {
     pub global_usage: f32,
     pub cpus: Vec<CpuStats>,
-    pub history: VecDeque<f64>,
+    pub history: super::history::History<f64>,
 }
 
 impl super::App {
     fn render_cpu_graphic(&self, stats: Cpu, area: Rect, buf: &mut Buffer) {
         let points: Vec<(f64, f64)> = stats
             .history
+            .values
             .iter()
             .enumerate()
             .map(|(i, usage)| {

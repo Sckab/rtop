@@ -1,21 +1,23 @@
 use crossterm::event::{self, Event, KeyEventKind};
 use ratatui::{DefaultTerminal, Frame};
-use std::{collections::VecDeque, io};
+use std::io;
 
 mod cpu;
 mod general;
 mod handle_keys;
 mod help_menu;
+mod history;
 mod memory;
 mod processes;
 mod render;
 
 #[derive(Debug, Default)]
 struct SystemStats {
-    memory_used: u64,
-    memory_available: u64,
-    memory_free: u64,
-    memory_total: u64,
+    memory_used: memory::Memory,
+    memory_available: memory::Memory,
+    memory_free: memory::Memory,
+    memory_total: memory::Memory,
+
     cpu: cpu::Cpu,
 }
 
@@ -70,7 +72,14 @@ impl App {
                 }
             };
 
-            let mut history: VecDeque<f64> = VecDeque::new();
+            let width = (terminal_size.width / 2).max(1) as usize;
+
+            let mut cpu_history = history::History::new(width);
+
+            let mut used_memory_history = history::History::new(width);
+            let mut available_memory_history = history::History::new(width);
+            let mut free_memory_history = history::History::new(width);
+            let mut total_memory_history = history::History::new(width);
 
             loop {
                 system.refresh_all();
@@ -84,21 +93,39 @@ impl App {
                     });
                 }
 
-                if history.len() >= (terminal_size.width / 2) as usize {
-                    history.pop_front();
-                }
+                let used_memory = system.used_memory();
+                let available_memory = system.available_memory();
+                let free_memory = system.free_memory();
+                let total_memory = system.total_memory();
 
-                history.push_back(system.global_cpu_usage() as f64);
+                cpu_history.push(system.global_cpu_usage() as f64);
+
+                used_memory_history.push(used_memory);
+                available_memory_history.push(available_memory);
+                free_memory_history.push(free_memory);
+                total_memory_history.push(total_memory);
 
                 let stats = SystemStats {
-                    memory_used: system.used_memory(),
-                    memory_available: system.available_memory(),
-                    memory_free: system.free_memory(),
-                    memory_total: system.total_memory(),
+                    memory_used: memory::Memory {
+                        value: used_memory,
+                        history: used_memory_history.clone(),
+                    },
+                    memory_available: memory::Memory {
+                        value: available_memory,
+                        history: available_memory_history.clone(),
+                    },
+                    memory_free: memory::Memory {
+                        value: free_memory,
+                        history: free_memory_history.clone(),
+                    },
+                    memory_total: memory::Memory {
+                        value: total_memory,
+                        history: total_memory_history.clone(),
+                    },
                     cpu: cpu::Cpu {
                         global_usage: system.global_cpu_usage(),
                         cpus,
-                        history: history.clone(),
+                        history: cpu_history.clone(),
                     },
                 };
 

@@ -27,6 +27,8 @@ impl super::App {
             KeyCode::Char('q') | KeyCode::Esc => {
                 if self.show_help {
                     self.show_help = false;
+                } else if self.show_kill_failed {
+                    self.show_kill_failed = false;
                 } else {
                     self.quit = true;
                 }

@@ -51,7 +51,7 @@ impl super::App {
     pub fn render_cpu_usage(&self, area: Rect, buf: &mut Buffer) {
         let cpu_stats = self.stats.cpu.clone();
 
-        let inner_area = super::general::get_borderd_block(" CPU Usage ", area, buf);
+        let inner_area = super::general::get_borderd_block(" CPU Usage ", false, false, area, buf);
 
         let mut items: Vec<(String, String)> = Vec::new();
 

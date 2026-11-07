@@ -42,11 +42,14 @@ pub struct App {
     show_help: bool,
     kill_process: bool,
     show_kill_confirmation: bool,
+    show_kill_failed: bool,
+    failed_message: String,
     system_info: SystemInfo,
     stats: SystemStats,
     processes: Vec<processes::Process>,
     states: States,
     keys: Vec<help_menu::Key>,
+    failed_at: Option<std::time::Instant>,
 }
 
 impl App {
@@ -68,6 +71,9 @@ impl App {
             show_help: false,
             kill_process: false,
             show_kill_confirmation: false,
+            show_kill_failed: false,
+            failed_at: None,
+            failed_message: "".to_string(),
             system_info,
             stats: SystemStats::default(),
             processes: vec![],
@@ -90,11 +96,19 @@ impl App {
         let (tx, rx) = std::sync::mpsc::channel::<u32>();
 
         let rx_stats = workers::create_stats_thread(terminal_size);
-        let rx_processes = workers::create_process_thread(rx);
+        let (rx_processes, rx_msg_kill) = workers::create_process_thread(rx);
 
         while !self.quit {
             if self.states.help_table.selected().is_none() {
                 self.states.help_table.select_first();
+            }
+
+            if self
+                .failed_at
+                .is_some_and(|time| time.elapsed() >= std::time::Duration::from_secs(3))
+            {
+                self.show_kill_failed = false;
+                self.failed_at = None;
             }
 
             if self.kill_process {
@@ -104,6 +118,13 @@ impl App {
 
             while let Ok(stats) = rx_stats.try_recv() {
                 self.stats = stats;
+            }
+
+            while let Ok(failed) = rx_msg_kill.try_recv() {
+                self.show_kill_failed = true;
+                self.failed_message = failed;
+
+                self.failed_at = Some(std::time::Instant::now());
             }
 
             while let Ok(processes) = rx_processes.try_recv() {

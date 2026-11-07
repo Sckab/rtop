@@ -60,7 +60,7 @@ impl super::App {
     }
 
     pub fn render_memory_usage(&self, area: Rect, buf: &mut Buffer) {
-        let area = super::general::get_borderd_block(" Memory Usage ", area, buf);
+        let area = super::general::get_borderd_block(" Memory Usage ", false, false, area, buf);
 
         let layout = Layout::vertical([
             Constraint::Fill(1),

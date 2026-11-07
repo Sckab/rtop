@@ -44,7 +44,7 @@ impl super::App {
 
         ratatui::widgets::Widget::render(Clear, area, buf);
 
-        let popup_area = super::general::get_borderd_block(" Help ", area, buf);
+        let popup_area = super::general::get_borderd_block(" Help ", false, true, area, buf);
 
         let rows: Vec<Row> = self
             .keys

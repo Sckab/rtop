@@ -1,5 +1,5 @@
 use crossterm::event::{self, Event, KeyEventKind};
-use ratatui::{DefaultTerminal, Frame, widgets::TableState};
+use ratatui::{DefaultTerminal, widgets::TableState};
 use std::{io, sync::mpsc::Receiver};
 
 mod cpu;
@@ -86,14 +86,10 @@ impl App {
             }
 
             self.handle_events()?;
-            terminal.draw(|frame| self.draw(frame))?;
+            terminal.draw(|frame| self.render(frame.area(), frame.buffer_mut()))?;
         }
 
         Ok(())
-    }
-
-    fn draw(&mut self, frame: &mut Frame) {
-        self.render(frame.area(), frame.buffer_mut());
     }
 
     fn handle_events(&mut self) -> io::Result<()> {

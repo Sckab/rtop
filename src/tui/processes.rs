@@ -33,6 +33,14 @@ impl super::App {
             .map(|process| process.pid)
             .unwrap_or_default();
 
+        self.states.selected_process_name = self
+            .states
+            .process_table
+            .selected()
+            .and_then(|index| self.processes.get(index))
+            .map(|process| process.name.clone())
+            .unwrap_or_default();
+
         let area = super::general::get_borderd_block(
             format!(" Processes ({selected}/{}) ", self.processes.len()),
             area,

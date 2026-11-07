@@ -1,6 +1,6 @@
 use crossterm::event::{self, Event, KeyEventKind};
 use ratatui::{DefaultTerminal, widgets::TableState};
-use std::{io, sync::mpsc::Receiver};
+use std::{ffi::OsString, io, sync::mpsc::Receiver};
 
 mod cpu;
 mod general;
@@ -34,12 +34,14 @@ pub struct States {
     process_table: TableState,
     help_table: TableState,
     selected_process_pid: u32,
+    selected_process_name: OsString,
 }
 
 pub struct App {
     quit: bool,
     show_help: bool,
     kill_process: bool,
+    show_kill_confirmation: bool,
     system_info: SystemInfo,
     stats: SystemStats,
     processes: Vec<processes::Process>,
@@ -65,6 +67,7 @@ impl App {
             quit: false,
             show_help: false,
             kill_process: false,
+            show_kill_confirmation: false,
             system_info,
             stats: SystemStats::default(),
             processes: vec![],
@@ -76,6 +79,7 @@ impl App {
                 help_menu::Key::new("j", "Down", "Select next process"),
                 help_menu::Key::new("g", "Left", "Select first process"),
                 help_menu::Key::new("G", "Right", "Select last process"),
+                help_menu::Key::new("K", "", "Kill selected process"),
             ],
         })
     }

@@ -1,6 +1,6 @@
 use crossterm::event::{self, Event, KeyEventKind};
-use ratatui::{DefaultTerminal, Frame};
-use std::io;
+use ratatui::{DefaultTerminal, Frame, widgets::TableState};
+use std::{io, sync::mpsc::Receiver};
 
 mod cpu;
 mod general;
@@ -10,6 +10,7 @@ mod history;
 mod memory;
 mod processes;
 mod render;
+mod workers;
 
 #[derive(Debug, Default)]
 struct SystemStats {
@@ -17,7 +18,6 @@ struct SystemStats {
     memory_available: memory::Memory,
     memory_free: memory::Memory,
     memory_total: memory::Memory,
-
     cpu: cpu::Cpu,
 }
 
@@ -28,11 +28,18 @@ struct SystemInfo {
     size_formatter: Box<dyn Fn(u64) -> String>,
 }
 
+#[derive(Default)]
+pub struct States {
+    process_table: TableState,
+}
+
 pub struct App {
     quit: bool,
     show_help: bool,
     system_info: SystemInfo,
     stats: SystemStats,
+    processes: Vec<processes::Process>,
+    states: States,
 }
 
 impl App {
@@ -54,92 +61,28 @@ impl App {
             show_help: false,
             system_info,
             stats: SystemStats::default(),
+            processes: vec![],
+            states: States::default(),
         })
     }
 
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
-        let (tx, rx) = std::sync::mpsc::channel::<SystemStats>();
-
         let terminal_size = terminal.size()?;
 
-        // we need to create a separate thread as the std::thread::sleep() will block the user input events
-        std::thread::spawn(move || {
-            let mut system = match sysinfo::System::new() {
-                Ok(system) => system,
-                Err(error) => {
-                    eprintln!("Failed to initialize system: {error}");
-                    return;
-                }
-            };
-
-            let width = (terminal_size.width / 2).max(1) as usize;
-
-            let mut cpu_history = history::History::new(width);
-
-            let mut used_memory_history = history::History::new(width);
-            let mut available_memory_history = history::History::new(width);
-            let mut free_memory_history = history::History::new(width);
-            let mut total_memory_history = history::History::new(width);
-
-            loop {
-                system.refresh_all();
-
-                let mut cpus: Vec<cpu::CpuStats> = vec![];
-
-                for (index, cpu) in system.cpus().iter().enumerate() {
-                    cpus.push(cpu::CpuStats {
-                        number: index + 1,
-                        usage: cpu.usage(),
-                    });
-                }
-
-                let used_memory = system.used_memory();
-                let available_memory = system.available_memory();
-                let free_memory = system.free_memory();
-                let total_memory = system.total_memory();
-
-                cpu_history.push(system.global_cpu_usage() as f64);
-
-                used_memory_history.push(used_memory);
-                available_memory_history.push(available_memory);
-                free_memory_history.push(free_memory);
-                total_memory_history.push(total_memory);
-
-                let stats = SystemStats {
-                    memory_used: memory::Memory {
-                        value: used_memory,
-                        history: used_memory_history.clone(),
-                    },
-                    memory_available: memory::Memory {
-                        value: available_memory,
-                        history: available_memory_history.clone(),
-                    },
-                    memory_free: memory::Memory {
-                        value: free_memory,
-                        history: free_memory_history.clone(),
-                    },
-                    memory_total: memory::Memory {
-                        value: total_memory,
-                        history: total_memory_history.clone(),
-                    },
-                    cpu: cpu::Cpu {
-                        global_usage: system.global_cpu_usage(),
-                        cpus,
-                        history: cpu_history.clone(),
-                    },
-                };
-
-                if tx.send(stats).is_err() {
-                    break;
-                }
-
-                std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
-            }
-        });
+        let rx_stats = workers::create_stats_thread(terminal_size);
+        let rx_processes = workers::create_process_thread();
 
         while !self.quit {
-            while let Ok(stats) = rx.try_recv() {
+            while let Ok(stats) = rx_stats.try_recv() {
                 self.stats = stats;
+            }
+
+            while let Ok(processes) = rx_processes.try_recv() {
+                self.processes = processes;
+
+                if self.states.process_table.selected().is_none() && !self.processes.is_empty() {
+                    self.states.process_table.select_first();
+                }
             }
 
             self.handle_events()?;
@@ -149,8 +92,8 @@ impl App {
         Ok(())
     }
 
-    fn draw(&self, frame: &mut Frame) {
-        frame.render_widget(self, frame.area());
+    fn draw(&mut self, frame: &mut Frame) {
+        self.render(frame.area(), frame.buffer_mut());
     }
 
     fn handle_events(&mut self) -> io::Result<()> {

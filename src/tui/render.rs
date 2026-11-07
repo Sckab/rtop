@@ -4,8 +4,8 @@ use ratatui::{
     widgets::{Paragraph, Widget},
 };
 
-impl Widget for &super::App {
-    fn render(self, area: Rect, buf: &mut Buffer) {
+impl super::App {
+    pub fn render(&mut self, area: Rect, buf: &mut Buffer) {
         let layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Length(1), Constraint::Fill(1)])

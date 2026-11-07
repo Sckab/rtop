@@ -33,11 +33,13 @@ struct SystemInfo {
 pub struct States {
     process_table: TableState,
     help_table: TableState,
+    selected_process_pid: u32,
 }
 
 pub struct App {
     quit: bool,
     show_help: bool,
+    kill_process: bool,
     system_info: SystemInfo,
     stats: SystemStats,
     processes: Vec<processes::Process>,
@@ -62,6 +64,7 @@ impl App {
         Ok(Self {
             quit: false,
             show_help: false,
+            kill_process: false,
             system_info,
             stats: SystemStats::default(),
             processes: vec![],
@@ -80,12 +83,19 @@ impl App {
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
         let terminal_size = terminal.size()?;
 
+        let (tx, rx) = std::sync::mpsc::channel::<u32>();
+
         let rx_stats = workers::create_stats_thread(terminal_size);
-        let rx_processes = workers::create_process_thread();
+        let rx_processes = workers::create_process_thread(rx);
 
         while !self.quit {
             if self.states.help_table.selected().is_none() {
                 self.states.help_table.select_first();
+            }
+
+            if self.kill_process {
+                let _ = tx.send(self.states.selected_process_pid);
+                self.kill_process = false;
             }
 
             while let Ok(stats) = rx_stats.try_recv() {

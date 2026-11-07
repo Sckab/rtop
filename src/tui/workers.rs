@@ -84,7 +84,7 @@ pub fn create_stats_thread(terminal_size: Size) -> Receiver<SystemStats> {
     rx
 }
 
-pub fn create_process_thread() -> Receiver<Vec<processes::Process>> {
+pub fn create_process_thread(kill_rx: Receiver<u32>) -> Receiver<Vec<processes::Process>> {
     let (tx, rx) = std::sync::mpsc::channel();
 
     std::thread::spawn(move || {
@@ -114,6 +114,14 @@ pub fn create_process_thread() -> Receiver<Vec<processes::Process>> {
         system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, refresh_kind);
 
         loop {
+            while let Ok(pid) = kill_rx.try_recv() {
+                if let Some(process) = system.process(sysinfo::Pid::from_u32(pid)) {
+                    if !process.kill() {
+                        eprintln!("Failed to kill process {pid}");
+                    }
+                }
+            }
+
             system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, refresh_kind);
 
             let processes: Vec<processes::Process> = system

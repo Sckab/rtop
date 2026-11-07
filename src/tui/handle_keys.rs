@@ -33,6 +33,7 @@ impl super::App {
             }
             KeyCode::Char('g') | KeyCode::Left => table.select_first(),
             KeyCode::Char('G') | KeyCode::Right => table.select_last(),
+            KeyCode::Char('K') => self.kill_process = true,
             _ => {}
         }
     }

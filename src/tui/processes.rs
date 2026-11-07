@@ -3,7 +3,7 @@ use std::{ffi::OsString, path::PathBuf};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Rect},
-    style::{Color, Style},
+    style::{Color, Style, Stylize},
     widgets::{Row, StatefulWidget, Table},
 };
 
@@ -20,7 +20,16 @@ pub struct Process {
 
 impl super::App {
     pub fn render_processes(&mut self, area: Rect, buf: &mut Buffer) {
-        let area = super::general::get_borderd_block(" Processes ", area, buf);
+        let selected = match self.states.process_table.selected() {
+            Some(index) if !self.processes.is_empty() => index.min(self.processes.len() - 1) + 1,
+            _ => 0,
+        };
+
+        let area = super::general::get_borderd_block(
+            format!(" Processes ({selected}/{}) ", self.processes.len()),
+            area,
+            buf,
+        );
 
         let format_name = |p: &Process| -> String {
             let process_exe = p.exe.display();
@@ -40,7 +49,8 @@ impl super::App {
             format!("{} {}{}{}", p.name.display(), l_par, process_exe, r_par)
         };
 
-        let header = Row::new(["PID", "Name", "User", "Threads", "CPU %", "Memory"]);
+        let header =
+            Row::new(["PID", "Name", "User", "Threads", "CPU %", "Memory"]).fg(Color::Green);
 
         let mut pid_width = "PID".len();
         let mut name_width = "Name".len();
@@ -85,7 +95,7 @@ impl super::App {
         )
         .column_spacing(2)
         .header(header)
-        .row_highlight_style(Style::new().bg(Color::White).fg(Color::Black))
+        .row_highlight_style(Style::new().bg(Color::Green).fg(Color::Black))
         .render(area, buf, &mut self.states.process_table);
     }
 }

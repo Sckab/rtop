@@ -5,6 +5,7 @@ use std::{io, sync::mpsc::Receiver};
 mod cpu;
 mod general;
 mod handle_keys;
+mod header;
 mod help_menu;
 mod history;
 mod memory;
@@ -66,12 +67,12 @@ impl App {
             processes: vec![],
             states: States::default(),
             keys: vec![
-                help_menu::Key::new("Help", "h", "?", "Shows this help panel"),
-                help_menu::Key::new("Quit", "q", "Esc", "Quit the application (or this panel)"),
-                help_menu::Key::new("Process Panel", "k", "Up", "Select previous process"),
-                help_menu::Key::new("Process Panel", "j", "Down", "Select next process"),
-                help_menu::Key::new("Process Panel", "g", "Left", "Select first process"),
-                help_menu::Key::new("Process Panel", "G", "Right", "Select last process"),
+                help_menu::Key::new("h", "?", "Shows this help panel"),
+                help_menu::Key::new("q", "Esc", "Quit the application (or this panel)"),
+                help_menu::Key::new("k", "Up", "Select previous process"),
+                help_menu::Key::new("j", "Down", "Select next process"),
+                help_menu::Key::new("g", "Left", "Select first process"),
+                help_menu::Key::new("G", "Right", "Select last process"),
             ],
         })
     }

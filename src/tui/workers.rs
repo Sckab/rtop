@@ -119,7 +119,7 @@ pub fn create_process_thread() -> Receiver<Vec<processes::Process>> {
             let processes: Vec<processes::Process> = system
                 .processes()
                 .iter()
-                .filter(|(_, process)| process.thread_kind().is_none())
+                .filter(|(_, process)| process.thread_kind() != Some(sysinfo::ThreadKind::Userland))
                 .map(|(pid, process)| {
                     let user = process
                         .user_id()

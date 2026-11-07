@@ -1,7 +1,9 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
+    style::{Color, Stylize},
     symbols::{Marker, merge::MergeStrategy},
+    text::Span,
     widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Paragraph, Widget},
 };
 
@@ -20,11 +22,10 @@ impl super::App {
         ])
         .split(area);
 
-        Paragraph::new(format!(
-            "{title}: {}",
-            (self.system_info.size_formatter)(memory.value)
-        ))
-        .render(layout[0], buf);
+        let title = Span::raw(format!("{title}: ")).fg(Color::Green);
+        let size_formatted = Span::raw((self.system_info.size_formatter)(memory.value));
+
+        Paragraph::new(title + size_formatted).render(layout[0], buf);
 
         let points: Vec<(f64, f64)> = memory
             .history
@@ -54,6 +55,7 @@ impl super::App {
         Block::default()
             .borders(Borders::BOTTOM)
             .merge_borders(MergeStrategy::Fuzzy)
+            .fg(Color::Green)
             .render(layout[2], buf);
     }
 
@@ -72,10 +74,11 @@ impl super::App {
         self.render_memory("Available", &self.stats.memory_available, layout[1], buf);
         self.render_memory("Free", &self.stats.memory_free, layout[2], buf);
 
-        Paragraph::new(format!(
-            "Total: {}",
-            (self.system_info.size_formatter)(self.stats.memory_total.value)
-        ))
-        .render(layout[3], buf);
+        let title = Span::raw("Total: ").fg(Color::Green);
+        let size_formatted = Span::raw((self.system_info.size_formatter)(
+            self.stats.memory_total.value,
+        ));
+
+        Paragraph::new(title + size_formatted).render(layout[3], buf);
     }
 }

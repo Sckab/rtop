@@ -1,8 +1,10 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
+    style::{Color, Style, Stylize},
     symbols::Marker,
-    widgets::{Axis, Chart, Dataset, GraphType, Paragraph, Row, Table, Widget},
+    text::Span,
+    widgets::{Axis, Cell, Chart, Dataset, GraphType, Paragraph, Row, Table, Widget},
 };
 
 #[derive(Debug, Clone)]
@@ -114,7 +116,10 @@ impl super::App {
 
                 let (name, usage) = &items[index];
 
-                table_rows.push(Row::new([name.as_str(), usage.as_str()]));
+                table_rows.push(Row::new([
+                    Cell::from(name.as_str()).style(Style::default().fg(Color::Green)),
+                    Cell::from(usage.as_str()),
+                ]));
             }
 
             Table::new(
@@ -128,8 +133,11 @@ impl super::App {
             .render(table_layout[i], buf);
         }
 
-        Paragraph::new(format!("Total: {:.0}%", self.stats.cpu.global_usage))
-            .render(total_area, buf);
+        Paragraph::new(
+            Span::raw("Total: ").fg(Color::Green)
+                + Span::raw(format!("{:.0}%", self.stats.cpu.global_usage)),
+        )
+        .render(total_area, buf);
 
         self.render_cpu_graphic(cpu_stats, panel_layout[1], buf);
     }

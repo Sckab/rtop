@@ -1,10 +1,11 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Rect},
-    widgets::{Block, BorderType, Clear, Row, Table, Widget},
+    style::{Color, Style},
+    widgets::{Block, BorderType, Clear, Row, StatefulWidget, Table},
 };
 
-struct Key {
+pub struct Key {
     pub name: String,
     pub primary_key: String,
     pub secondary_key: String,
@@ -23,38 +24,27 @@ impl Key {
 }
 
 impl super::App {
-    pub fn render_help_panel(&self, area: Rect, buf: &mut Buffer) {
+    pub fn render_help_panel(&mut self, area: Rect, buf: &mut Buffer) {
         const COLUMN_SPACING: usize = 2;
 
-        let keys = [
-            Key::new("Help", "h", "?", "Shows this help panel"),
-            Key::new("Quit", "q", "Esc", "Quit the application (or this panel)"),
-        ];
+        let max_width = |f: fn(&Key) -> usize| self.keys.iter().map(f).max().unwrap_or(0);
 
         let column_widths = [
-            keys.iter().map(|key| key.name.len()).max().unwrap_or(0),
-            keys.iter()
-                .map(|key| key.primary_key.len())
-                .max()
-                .unwrap_or(0),
-            keys.iter()
-                .map(|key| key.secondary_key.len())
-                .max()
-                .unwrap_or(0),
-            keys.iter()
-                .map(|key| key.description.len())
-                .max()
-                .unwrap_or(0),
+            max_width(|key| key.name.len()),
+            max_width(|key| key.primary_key.len()),
+            max_width(|key| key.secondary_key.len()),
+            max_width(|key| key.description.len()),
         ];
 
         let table_width = column_widths.iter().sum::<usize>() + (COLUMN_SPACING * 3) + 2;
+        let height = self.keys.len().min((area.height / 2) as usize) + 2;
 
         let popup_area = area.centered(
             Constraint::Length(table_width as u16),
-            Constraint::Length((keys.len() + 2) as u16),
+            Constraint::Length(height as u16),
         );
 
-        let rows = keys.iter().map(|key| {
+        let rows = self.keys.iter().map(|key| {
             Row::new([
                 key.name.as_str(),
                 key.primary_key.as_str(),
@@ -63,7 +53,7 @@ impl super::App {
             ])
         });
 
-        Clear.render(popup_area, buf);
+        ratatui::widgets::Widget::render(Clear, popup_area, buf);
 
         Table::new(
             rows,
@@ -80,6 +70,7 @@ impl super::App {
                 .title(" Help ")
                 .border_type(BorderType::Rounded),
         )
-        .render(popup_area, buf);
+        .row_highlight_style(Style::new().bg(Color::White).fg(Color::Black))
+        .render(popup_area, buf, &mut self.states.help_table);
     }
 }

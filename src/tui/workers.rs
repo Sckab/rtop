@@ -104,12 +104,22 @@ pub fn create_process_thread() -> Receiver<Vec<processes::Process>> {
             }
         };
 
+        let refresh_kind = sysinfo::ProcessRefreshKind::nothing()
+            .with_memory()
+            .with_cpu()
+            .with_exe(sysinfo::UpdateKind::OnlyIfNotSet)
+            .with_tasks()
+            .with_user(sysinfo::UpdateKind::OnlyIfNotSet);
+
+        system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, refresh_kind);
+
         loop {
-            system.refresh_all();
+            system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, refresh_kind);
 
             let processes: Vec<processes::Process> = system
                 .processes()
                 .iter()
+                .filter(|(_, process)| process.thread_kind().is_none())
                 .map(|(pid, process)| {
                     let user = process
                         .user_id()
@@ -123,7 +133,7 @@ pub fn create_process_thread() -> Receiver<Vec<processes::Process>> {
                         cpu_usage: process.cpu_usage(),
                         memory: process.memory(),
                         exe: process.exe().unwrap_or(Path::new("")).to_path_buf(),
-                        threads: process.tasks().map(|tasks| tasks.len()).unwrap_or(0),
+                        threads: process.tasks().map(|tasks| tasks.len() + 1).unwrap_or(1),
                         user,
                     }
                 })

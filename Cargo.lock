@@ -167,12 +167,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95832e849adfb21180ccb6826a99da14e5d266ae5c2e668e1602cf234f153797"
 
 [[package]]
-name = "bytes"
-version = "1.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
-
-[[package]]
 name = "castaway"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1335,7 +1329,6 @@ dependencies = [
  "ratatui",
  "sysinfo",
  "time",
- "whichdisk",
 ]
 
 [[package]]
@@ -1925,19 +1918,6 @@ dependencies = [
  "lazy_static",
  "serde",
  "wezterm-dynamic",
-]
-
-[[package]]
-name = "whichdisk"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9255a7ba730e55aaeae918d4baadae1f8addf1b19c8fc5b36a1ebf3584fc2b9"
-dependencies = [
- "bytes",
- "libc",
- "memchr",
- "rustix",
- "windows-sys",
 ]
 
 [[package]]

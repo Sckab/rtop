@@ -26,7 +26,7 @@ impl super::App {
             .iter()
             .enumerate()
             .map(|(i, usage)| {
-                let normalized = (*usage as f64 / 100.0) * area.height as f64;
+                let normalized = (*usage / 100.0) * area.height as f64;
 
                 (i as f64, normalized)
             })
@@ -35,7 +35,7 @@ impl super::App {
         let data = Dataset::default()
             .marker(Marker::Braille)
             .graph_type(GraphType::Line)
-            .data(&points.as_slice());
+            .data(&points);
 
         let x_axis = Axis::default().bounds([0.0, area.width as f64]);
         let y_axis = Axis::default().bounds([0.0, area.height as f64]);

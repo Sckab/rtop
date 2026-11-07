@@ -31,6 +31,7 @@ struct SystemInfo {
 #[derive(Default)]
 pub struct States {
     process_table: TableState,
+    help_table: TableState,
 }
 
 pub struct App {
@@ -40,6 +41,7 @@ pub struct App {
     stats: SystemStats,
     processes: Vec<processes::Process>,
     states: States,
+    keys: Vec<help_menu::Key>,
 }
 
 impl App {
@@ -63,6 +65,14 @@ impl App {
             stats: SystemStats::default(),
             processes: vec![],
             states: States::default(),
+            keys: vec![
+                help_menu::Key::new("Help", "h", "?", "Shows this help panel"),
+                help_menu::Key::new("Quit", "q", "Esc", "Quit the application (or this panel)"),
+                help_menu::Key::new("Process Panel", "k", "Up", "Select previous process"),
+                help_menu::Key::new("Process Panel", "j", "Down", "Select next process"),
+                help_menu::Key::new("Process Panel", "g", "Left", "Select first process"),
+                help_menu::Key::new("Process Panel", "G", "Right", "Select last process"),
+            ],
         })
     }
 
@@ -73,12 +83,38 @@ impl App {
         let rx_processes = workers::create_process_thread();
 
         while !self.quit {
+            if self.states.help_table.selected().is_none() {
+                self.states.help_table.select_first();
+            }
+
             while let Ok(stats) = rx_stats.try_recv() {
                 self.stats = stats;
             }
 
             while let Ok(processes) = rx_processes.try_recv() {
+                let selected_pid = self
+                    .states
+                    .process_table
+                    .selected()
+                    .and_then(|index| self.processes.get(index))
+                    .map(|process| process.pid);
+
                 self.processes = processes;
+
+                let selected = selected_pid
+                    .and_then(|pid| self.processes.iter().position(|process| process.pid == pid))
+                    .or_else(|| {
+                        if self.processes.is_empty() {
+                            None
+                        } else {
+                            self.states
+                                .process_table
+                                .selected()
+                                .map(|index| index.min(self.processes.len() - 1))
+                        }
+                    });
+
+                self.states.process_table.select(selected);
 
                 if self.states.process_table.selected().is_none() && !self.processes.is_empty() {
                     self.states.process_table.select_first();

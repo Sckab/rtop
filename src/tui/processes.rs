@@ -124,7 +124,7 @@ impl super::App {
 
     pub fn render_kill_confirmation(&self, area: Rect, buf: &mut Buffer) {
         let main_text = format!(
-            "Are you sure to kill \"{}\"",
+            "Are you sure to kill \"{}\"?",
             self.states.selected_process_name.display()
         );
 

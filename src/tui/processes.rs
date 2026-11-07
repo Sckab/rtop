@@ -54,7 +54,7 @@ impl super::App {
             name_width = name_width.max(format_name(process).len());
             user_width = user_width.max(process.user.len());
             threads_width = threads_width.max(process.threads.to_string().len());
-            cpu_usage_width = cpu_usage_width.max(format!("{:.0}%", process.cpu_usage).len());
+            cpu_usage_width = cpu_usage_width.max(format!("{:.1}%", process.cpu_usage).len());
             memory_width =
                 memory_width.max((self.system_info.size_formatter)(process.memory).len());
         }
@@ -68,7 +68,7 @@ impl super::App {
                     format_name(p),
                     p.user.clone(),
                     p.threads.to_string(),
-                    format!("{:.0}%", p.cpu_usage),
+                    format!("{:.1}%", p.cpu_usage),
                     (self.system_info.size_formatter)(p.memory),
                 ])
             })

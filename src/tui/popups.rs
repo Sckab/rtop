@@ -43,7 +43,7 @@ pub fn render_toast(message: &str, area: Rect, buf: &mut Buffer) {
         return;
     }
 
-    let width = (message.cell_width() + 4)
+    let width = (message.cell_width() + 2)
         .max(" Error ".len() as u16 + 2)
         .min(area.width.saturating_sub(2));
 

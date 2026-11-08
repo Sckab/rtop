@@ -9,7 +9,7 @@ use ratatui::{
 
 use crate::system::memory::Memory;
 
-impl super::App {
+impl crate::app::App {
     fn render_memory(&self, title: &str, memory: &Memory, area: Rect, buf: &mut Buffer) {
         let layout = Layout::vertical([
             Constraint::Length(1),
@@ -56,7 +56,7 @@ impl super::App {
     }
 
     pub fn render_memory_usage(&self, area: Rect, buf: &mut Buffer) {
-        let area = super::general::get_borderd_block(" Memory Usage ", false, false, area, buf);
+        let area = super::widgets::get_bordered_block(" Memory Usage ", false, false, area, buf);
 
         let layout = Layout::vertical([
             Constraint::Fill(1),

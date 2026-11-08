@@ -6,23 +6,9 @@ use ratatui::{
     widgets::{Cell, Clear, Row, StatefulWidget, Table},
 };
 
-pub struct Key {
-    pub primary_key: String,
-    pub secondary_key: String,
-    pub description: String,
-}
+use crate::app::keymap::Key;
 
-impl Key {
-    pub fn new(primary_key: &str, secondary_key: &str, description: &str) -> Self {
-        Self {
-            primary_key: primary_key.to_string(),
-            secondary_key: secondary_key.to_string(),
-            description: description.to_string(),
-        }
-    }
-}
-
-impl super::App {
+impl crate::app::App {
     pub fn render_help_panel(&mut self, area: Rect, buf: &mut Buffer) {
         const COLUMN_SPACING: usize = 2;
 
@@ -44,7 +30,7 @@ impl super::App {
 
         ratatui::widgets::Widget::render(Clear, area, buf);
 
-        let popup_area = super::general::get_borderd_block(" Help ", false, true, area, buf);
+        let popup_area = super::widgets::get_bordered_block(" Help ", false, true, area, buf);
 
         let rows: Vec<Row> = self
             .keys

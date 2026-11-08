@@ -1,0 +1,168 @@
+use crossterm::event::{self, Event, KeyEventKind};
+use ratatui::{DefaultTerminal, widgets::TableState};
+use std::{ffi::OsString, io};
+
+use crate::system::{SystemInfo, SystemStats, process::Process, workers};
+
+mod input;
+pub(crate) mod keymap;
+
+#[derive(Default)]
+pub struct States {
+    pub(crate) process_table: TableState,
+    pub(crate) help_table: TableState,
+    pub(crate) selected_process_pid: u32,
+    pub(crate) selected_process_name: OsString,
+}
+
+pub struct App {
+    pub(crate) quit: bool,
+    pub(crate) show_help: bool,
+    pub(crate) kill_process: bool,
+    pub(crate) show_kill_confirmation: bool,
+    pub(crate) show_kill_failed: bool,
+    pub(crate) failed_message: String,
+    pub(crate) system_info: SystemInfo,
+    pub(crate) stats: SystemStats,
+    pub(crate) processes: Vec<Process>,
+    pub(crate) states: States,
+    pub(crate) keys: Vec<keymap::Key>,
+    pub(crate) failed_at: Option<std::time::Instant>,
+}
+
+impl App {
+    pub fn new() -> anyhow::Result<Self> {
+        let system_info = SystemInfo {
+            host_name: sysinfo::System::host_name()?,
+            os_name: sysinfo::System::name()?,
+            size_formatter: Box::new(humansize::make_format(humansize::DECIMAL)),
+
+            #[cfg(unix)]
+            user_name: std::env::var("USER").unwrap_or("unkown".to_string()),
+
+            #[cfg(windows)]
+            user_name: std::env::var("USERNAME").unwrap_or("unkown".to_string()),
+        };
+
+        Ok(Self {
+            quit: false,
+            show_help: false,
+            kill_process: false,
+            show_kill_confirmation: false,
+            show_kill_failed: false,
+            failed_at: None,
+            failed_message: "".to_string(),
+            system_info,
+            stats: SystemStats::default(),
+            processes: vec![],
+            states: States::default(),
+            keys: keymap::default_keys(),
+        })
+    }
+
+    pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
+        let terminal_size = terminal.size()?;
+
+        let (tx, rx) = std::sync::mpsc::channel::<u32>();
+
+        let rx_stats = workers::create_stats_thread(terminal_size.width);
+        let (rx_processes, rx_msg_kill) = workers::create_process_thread(rx);
+
+        let mut dirty = true;
+
+        while !self.quit {
+            if self.states.help_table.selected().is_none() {
+                self.states.help_table.select_first();
+            }
+
+            if self
+                .failed_at
+                .is_some_and(|time| time.elapsed() >= std::time::Duration::from_secs(3))
+            {
+                self.show_kill_failed = false;
+                self.failed_at = None;
+                dirty = true;
+            }
+
+            if self.kill_process {
+                let _ = tx.send(self.states.selected_process_pid);
+                self.kill_process = false;
+            }
+
+            while let Ok(stats) = rx_stats.try_recv() {
+                self.stats = stats;
+                dirty = true;
+            }
+
+            while let Ok(failed) = rx_msg_kill.try_recv() {
+                self.show_kill_failed = true;
+                self.failed_message = failed;
+
+                self.failed_at = Some(std::time::Instant::now());
+                dirty = true;
+            }
+
+            while let Ok(mut processes) = rx_processes.try_recv() {
+                for process in &mut processes {
+                    crate::tui::prepare_display(process, &self.system_info.size_formatter);
+                }
+
+                let selected_pid = self
+                    .states
+                    .process_table
+                    .selected()
+                    .and_then(|index| self.processes.get(index))
+                    .map(|process| process.pid);
+
+                self.processes = processes;
+
+                let selected = selected_pid
+                    .and_then(|pid| self.processes.iter().position(|process| process.pid == pid))
+                    .or_else(|| {
+                        if self.processes.is_empty() {
+                            None
+                        } else {
+                            self.states
+                                .process_table
+                                .selected()
+                                .map(|index| index.min(self.processes.len() - 1))
+                        }
+                    });
+
+                self.states.process_table.select(selected);
+
+                if self.states.process_table.selected().is_none() && !self.processes.is_empty() {
+                    self.states.process_table.select_first();
+                }
+
+                dirty = true;
+            }
+
+            if self.handle_events()? {
+                dirty = true;
+            }
+
+            if dirty {
+                terminal.draw(|frame| self.render(frame.area(), frame.buffer_mut()))?;
+                dirty = false;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn handle_events(&mut self) -> io::Result<bool> {
+        if event::poll(std::time::Duration::from_millis(50))? {
+            match event::read()? {
+                Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
+                    self.handle_key_event(key_event);
+                    Ok(true)
+                }
+                Event::Resize(_, _) => Ok(true),
+                _ => Ok(false),
+            }
+        } else {
+            Ok(false)
+        }
+    }
+}

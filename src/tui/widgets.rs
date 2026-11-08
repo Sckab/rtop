@@ -6,7 +6,7 @@ use ratatui::{
     widgets::{Block, BorderType, Widget},
 };
 
-pub fn get_borderd_block<S>(
+pub fn get_bordered_block<S>(
     title: S,
     error: bool,
     title_center: bool,

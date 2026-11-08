@@ -9,7 +9,7 @@ use ratatui::{
 
 use crate::system::cpu::Cpu;
 
-impl super::App {
+impl crate::app::App {
     fn render_cpu_graphic(&self, stats: &Cpu, area: Rect, buf: &mut Buffer) {
         let points: Vec<(f64, f64)> = stats
             .history
@@ -40,7 +40,7 @@ impl super::App {
     pub fn render_cpu_usage(&self, area: Rect, buf: &mut Buffer) {
         let cpu_stats = &self.stats.cpu;
 
-        let inner_area = super::general::get_borderd_block(" CPU Usage ", false, false, area, buf);
+        let inner_area = super::widgets::get_bordered_block(" CPU Usage ", false, false, area, buf);
 
         let mut items: Vec<(String, String)> = Vec::new();
 

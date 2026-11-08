@@ -6,7 +6,7 @@ use ratatui::{
     widgets::{Paragraph, Widget},
 };
 
-impl super::App {
+impl crate::app::App {
     pub fn render_header(&self, area: Rect, buf: &mut Buffer) {
         let layout = Layout::horizontal([Constraint::Fill(1), Constraint::Length(8)]).split(area);
 

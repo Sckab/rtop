@@ -1,57 +1,78 @@
 use crossterm::event::{KeyCode, KeyEvent};
+use ratatui::widgets::TableState;
+
+use super::state::Mode;
+use crate::system::process::Process;
 
 impl super::App {
     pub fn handle_key_event(&mut self, key: KeyEvent) {
-        let (table, length) = if self.show_help {
-            (&mut self.states.help_table, self.keys.len())
-        } else {
-            (&mut self.states.process_table, self.processes.len())
-        };
+        match &self.mode {
+            Mode::ConfirmKill { pid, .. } => {
+                let pid = *pid;
 
-        if self.show_kill_confirmation {
-            match key.code {
-                KeyCode::Char('y') | KeyCode::Enter => {
-                    self.kill_process = true;
-                    self.show_kill_confirmation = false;
+                match key.code {
+                    KeyCode::Char('y') | KeyCode::Enter => {
+                        self.pending_kill = Some(pid);
+                        self.mode = Mode::Normal;
+                    }
+                    KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Char('q') | KeyCode::Esc => {
+                        self.mode = Mode::Normal;
+                    }
+                    _ => {}
                 }
-                KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Char('q') | KeyCode::Esc => {
-                    self.show_kill_confirmation = false;
-                }
-                _ => {}
             }
-
-            return;
+            Mode::Help => match key.code {
+                KeyCode::Char('h') | KeyCode::Char('?') | KeyCode::Char('q') | KeyCode::Esc => {
+                    self.mode = Mode::Normal;
+                }
+                code => navigate(&mut self.tables.help_table, self.keys.len(), code),
+            },
+            Mode::Normal => match key.code {
+                KeyCode::Char('q') | KeyCode::Esc => self.quit = true,
+                KeyCode::Char('h') | KeyCode::Char('?') => self.mode = Mode::Help,
+                KeyCode::Char('K') => {
+                    if let Some(process) = self.selected_process() {
+                        self.mode = Mode::ConfirmKill {
+                            pid: process.pid,
+                            name: process.name.clone(),
+                        };
+                    }
+                }
+                code => navigate(&mut self.tables.process_table, self.processes.len(), code),
+            },
         }
+    }
 
-        match key.code {
-            KeyCode::Char('q') | KeyCode::Esc => {
-                if self.show_help {
-                    self.show_help = false;
-                } else if self.show_kill_failed {
-                    self.show_kill_failed = false;
-                } else {
-                    self.quit = true;
-                }
+    fn selected_process(&self) -> Option<&Process> {
+        self.tables
+            .process_table
+            .selected()
+            .and_then(|index| self.processes.get(index))
+    }
+}
+
+fn navigate(table: &mut TableState, length: usize, key: KeyCode) {
+    if length == 0 {
+        return;
+    }
+
+    match key {
+        KeyCode::Char('j') | KeyCode::Down => {
+            if table.selected().unwrap_or(0) + 1 >= length {
+                table.select_first();
+            } else {
+                table.select_next();
             }
-            KeyCode::Char('?') | KeyCode::Char('h') => self.show_help = !self.show_help,
-            KeyCode::Char('j') | KeyCode::Down => {
-                if table.selected().unwrap_or(0) >= length - 1 {
-                    table.select_first();
-                } else {
-                    table.select_next();
-                }
-            }
-            KeyCode::Char('k') | KeyCode::Up => {
-                if table.selected().unwrap_or(0) == 0 {
-                    table.select_last();
-                } else {
-                    table.select_previous();
-                }
-            }
-            KeyCode::Char('g') | KeyCode::Left => table.select_first(),
-            KeyCode::Char('G') | KeyCode::Right => table.select_last(),
-            KeyCode::Char('K') => self.show_kill_confirmation = true,
-            _ => {}
         }
+        KeyCode::Char('k') | KeyCode::Up => {
+            if table.selected().unwrap_or(0) == 0 {
+                table.select_last();
+            } else {
+                table.select_previous();
+            }
+        }
+        KeyCode::Char('g') | KeyCode::Left => table.select_first(),
+        KeyCode::Char('G') | KeyCode::Right => table.select_last(),
+        _ => {}
     }
 }

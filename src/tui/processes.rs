@@ -23,22 +23,12 @@ pub fn prepare_display(process: &mut Process, size_formatter: &dyn Fn(u64) -> St
 
 impl crate::app::App {
     pub fn render_processes(&mut self, area: Rect, buf: &mut Buffer) {
-        let selected_index = self.states.process_table.selected();
+        let selected_index = self.tables.process_table.selected();
 
         let selected = match selected_index {
             Some(index) if !self.processes.is_empty() => index.min(self.processes.len() - 1) + 1,
             _ => 0,
         };
-
-        self.states.selected_process_pid = selected_index
-            .and_then(|index| self.processes.get(index))
-            .map(|process| process.pid)
-            .unwrap_or_default();
-
-        self.states.selected_process_name = selected_index
-            .and_then(|index| self.processes.get(index))
-            .map(|process| process.name.clone())
-            .unwrap_or_default();
 
         let area = super::widgets::get_bordered_block(
             format!(" Processes ({selected}/{}) ", self.processes.len()),
@@ -55,11 +45,11 @@ impl crate::app::App {
 
         let offset = Self::process_table_offset(
             selected_index.unwrap_or(0),
-            self.states.process_table.offset(),
+            self.tables.process_table.offset(),
             visible_rows,
             self.processes.len(),
         );
-        *self.states.process_table.offset_mut() = offset;
+        *self.tables.process_table.offset_mut() = offset;
 
         let visible_processes = || self.processes.iter().skip(offset).take(visible_rows);
 

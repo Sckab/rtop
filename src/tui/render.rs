@@ -3,6 +3,8 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
 };
 
+use crate::app::state::Mode;
+
 impl crate::app::App {
     pub fn render(&mut self, area: Rect, buf: &mut Buffer) {
         let layout = Layout::default()
@@ -26,16 +28,18 @@ impl crate::app::App {
         self.render_memory_usage(usage_layout[1], buf);
         self.render_processes(info_layout[1], buf);
 
-        if self.show_help {
-            self.render_help_panel(area, buf);
+        match &self.mode {
+            Mode::Normal => {}
+            Mode::Help => {
+                super::help::render_help_panel(&self.keys, &mut self.tables.help_table, area, buf)
+            }
+            Mode::ConfirmKill { pid, name } => {
+                super::popups::render_kill_confirmation(name, *pid, area, buf)
+            }
         }
 
-        if self.show_kill_failed {
-            self.render_kill_failed(area, buf);
-        }
-
-        if self.show_kill_confirmation {
-            self.render_kill_confirmation(area, buf);
+        if let Some(toast) = &self.toast {
+            super::popups::render_toast(&toast.message, area, buf);
         }
     }
 }

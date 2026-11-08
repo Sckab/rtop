@@ -1,33 +1,25 @@
 use crossterm::event::{self, Event, KeyEventKind};
-use ratatui::{DefaultTerminal, widgets::TableState};
-use std::{ffi::OsString, io};
+use ratatui::DefaultTerminal;
+use std::io;
 
 use crate::system::{SystemInfo, SystemStats, process::Process, workers};
 
 mod input;
 pub(crate) mod keymap;
+pub(crate) mod state;
 
-#[derive(Default)]
-pub struct States {
-    pub(crate) process_table: TableState,
-    pub(crate) help_table: TableState,
-    pub(crate) selected_process_pid: u32,
-    pub(crate) selected_process_name: OsString,
-}
+use state::{Mode, TableStates, Toast};
 
 pub struct App {
     pub(crate) quit: bool,
-    pub(crate) show_help: bool,
-    pub(crate) kill_process: bool,
-    pub(crate) show_kill_confirmation: bool,
-    pub(crate) show_kill_failed: bool,
-    pub(crate) failed_message: String,
+    pub(crate) mode: Mode,
+    pub(crate) pending_kill: Option<u32>,
+    pub(crate) toast: Option<Toast>,
     pub(crate) system_info: SystemInfo,
     pub(crate) stats: SystemStats,
     pub(crate) processes: Vec<Process>,
-    pub(crate) states: States,
+    pub(crate) tables: TableStates,
     pub(crate) keys: Vec<keymap::Key>,
-    pub(crate) failed_at: Option<std::time::Instant>,
 }
 
 impl App {
@@ -46,16 +38,13 @@ impl App {
 
         Ok(Self {
             quit: false,
-            show_help: false,
-            kill_process: false,
-            show_kill_confirmation: false,
-            show_kill_failed: false,
-            failed_at: None,
-            failed_message: "".to_string(),
+            mode: Mode::Normal,
+            pending_kill: None,
+            toast: None,
             system_info,
             stats: SystemStats::default(),
             processes: vec![],
-            states: States::default(),
+            tables: TableStates::default(),
             keys: keymap::default_keys(),
         })
     }
@@ -71,22 +60,13 @@ impl App {
         let mut dirty = true;
 
         while !self.quit {
-            if self.states.help_table.selected().is_none() {
-                self.states.help_table.select_first();
-            }
-
-            if self
-                .failed_at
-                .is_some_and(|time| time.elapsed() >= std::time::Duration::from_secs(3))
-            {
-                self.show_kill_failed = false;
-                self.failed_at = None;
+            if self.toast.as_ref().is_some_and(Toast::is_expired) {
+                self.toast = None;
                 dirty = true;
             }
 
-            if self.kill_process {
-                let _ = tx.send(self.states.selected_process_pid);
-                self.kill_process = false;
+            if let Some(pid) = self.pending_kill.take() {
+                let _ = tx.send(pid);
             }
 
             while let Ok(stats) = rx_stats.try_recv() {
@@ -94,11 +74,8 @@ impl App {
                 dirty = true;
             }
 
-            while let Ok(failed) = rx_msg_kill.try_recv() {
-                self.show_kill_failed = true;
-                self.failed_message = failed;
-
-                self.failed_at = Some(std::time::Instant::now());
+            while let Ok(message) = rx_msg_kill.try_recv() {
+                self.toast = Some(Toast::new(message));
                 dirty = true;
             }
 
@@ -108,7 +85,7 @@ impl App {
                 }
 
                 let selected_pid = self
-                    .states
+                    .tables
                     .process_table
                     .selected()
                     .and_then(|index| self.processes.get(index))
@@ -122,17 +99,17 @@ impl App {
                         if self.processes.is_empty() {
                             None
                         } else {
-                            self.states
+                            self.tables
                                 .process_table
                                 .selected()
                                 .map(|index| index.min(self.processes.len() - 1))
                         }
                     });
 
-                self.states.process_table.select(selected);
+                self.tables.process_table.select(selected);
 
-                if self.states.process_table.selected().is_none() && !self.processes.is_empty() {
-                    self.states.process_table.select_first();
+                if self.tables.process_table.selected().is_none() && !self.processes.is_empty() {
+                    self.tables.process_table.select_first();
                 }
 
                 dirty = true;

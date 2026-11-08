@@ -10,7 +10,6 @@ pub struct Process {
     pub memory: u64,
     pub threads: usize,
 
-    // precalcolati una volta per refresh, non ad ogni frame
     pub pid_display: String,
     pub threads_display: String,
     pub cpu_display: String,

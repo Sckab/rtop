@@ -1,5 +1,3 @@
-use std::{ffi::OsString, path::PathBuf};
-
 use ratatui::{
     buffer::{Buffer, CellWidth},
     layout::{Alignment, Constraint, Layout, Rect},
@@ -8,38 +6,20 @@ use ratatui::{
     widgets::{Clear, Paragraph, Row, StatefulWidget, Table, TableState, Widget},
 };
 
-#[derive(Debug, Default, Clone)]
-pub struct Process {
-    pub pid: u32,
-    pub name: OsString,
-    pub exe: PathBuf,
-    pub user: String,
-    pub cpu_usage: f32,
-    pub memory: u64,
-    pub threads: usize,
+use crate::system::process::Process;
 
-    // precalcolati una volta per refresh, non ad ogni frame
-    pub pid_display: String,
-    pub threads_display: String,
-    pub cpu_display: String,
-    pub memory_display: String,
-    pub display_name: String,
-}
+pub fn prepare_display(process: &mut Process, size_formatter: &dyn Fn(u64) -> String) {
+    let exe = process.exe.display().to_string();
 
-impl Process {
-    pub fn prepare_display(&mut self, size_formatter: &dyn Fn(u64) -> String) {
-        let exe = self.exe.display().to_string();
-
-        self.display_name = if exe.is_empty() {
-            self.name.display().to_string()
-        } else {
-            format!("{} ({})", self.name.display(), exe)
-        };
-        self.pid_display = self.pid.to_string();
-        self.threads_display = self.threads.to_string();
-        self.cpu_display = format!("{:.1}%", self.cpu_usage);
-        self.memory_display = size_formatter(self.memory);
-    }
+    process.display_name = if exe.is_empty() {
+        process.name.display().to_string()
+    } else {
+        format!("{} ({})", process.name.display(), exe)
+    };
+    process.pid_display = process.pid.to_string();
+    process.threads_display = process.threads.to_string();
+    process.cpu_display = format!("{:.1}%", process.cpu_usage);
+    process.memory_display = size_formatter(process.memory);
 }
 
 impl super::App {

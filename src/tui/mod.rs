@@ -1,33 +1,17 @@
 use crossterm::event::{self, Event, KeyEventKind};
 use ratatui::{DefaultTerminal, widgets::TableState};
-use std::{ffi::OsString, io, sync::mpsc::Receiver};
+use std::{ffi::OsString, io};
+
+use crate::system::{SystemInfo, SystemStats, process::Process};
 
 mod cpu;
 mod general;
 mod handle_keys;
 mod header;
 mod help_menu;
-mod history;
 mod memory;
 mod processes;
 mod render;
-mod workers;
-
-#[derive(Debug, Default)]
-struct SystemStats {
-    memory_used: memory::Memory,
-    memory_available: memory::Memory,
-    memory_free: memory::Memory,
-    memory_total: memory::Memory,
-    cpu: cpu::Cpu,
-}
-
-struct SystemInfo {
-    host_name: String,
-    os_name: String,
-    user_name: String,
-    size_formatter: Box<dyn Fn(u64) -> String>,
-}
 
 #[derive(Default)]
 pub struct States {
@@ -46,7 +30,7 @@ pub struct App {
     failed_message: String,
     system_info: SystemInfo,
     stats: SystemStats,
-    processes: Vec<processes::Process>,
+    processes: Vec<Process>,
     states: States,
     keys: Vec<help_menu::Key>,
     failed_at: Option<std::time::Instant>,
@@ -95,8 +79,8 @@ impl App {
 
         let (tx, rx) = std::sync::mpsc::channel::<u32>();
 
-        let rx_stats = workers::create_stats_thread(terminal_size);
-        let (rx_processes, rx_msg_kill) = workers::create_process_thread(rx);
+        let rx_stats = crate::system::workers::create_stats_thread(terminal_size.width);
+        let (rx_processes, rx_msg_kill) = crate::system::workers::create_process_thread(rx);
 
         let mut dirty = true;
 
@@ -134,7 +118,7 @@ impl App {
 
             while let Ok(mut processes) = rx_processes.try_recv() {
                 for process in &mut processes {
-                    process.prepare_display(&self.system_info.size_formatter);
+                    processes::prepare_display(process, &self.system_info.size_formatter);
                 }
 
                 let selected_pid = self

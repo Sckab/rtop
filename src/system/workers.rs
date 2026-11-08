@@ -1,9 +1,9 @@
 use std::path::Path;
+use std::sync::mpsc::Receiver;
 
-use super::*;
-use ratatui::layout::Size;
+use super::{SystemStats, cpu, history, memory, process::Process};
 
-pub fn create_stats_thread(terminal_size: Size) -> Receiver<SystemStats> {
+pub fn create_stats_thread(width: u16) -> Receiver<SystemStats> {
     let (tx, rx) = std::sync::mpsc::channel::<SystemStats>();
 
     // we need to create a separate thread as the std::thread::sleep() will block the user input events
@@ -16,7 +16,7 @@ pub fn create_stats_thread(terminal_size: Size) -> Receiver<SystemStats> {
             }
         };
 
-        let width = (terminal_size.width / 2).max(1) as usize;
+        let width = (width / 2).max(1) as usize;
 
         let mut cpu_history = history::History::new(width);
 
@@ -85,9 +85,7 @@ pub fn create_stats_thread(terminal_size: Size) -> Receiver<SystemStats> {
     rx
 }
 
-pub fn create_process_thread(
-    kill_rx: Receiver<u32>,
-) -> (Receiver<Vec<processes::Process>>, Receiver<String>) {
+pub fn create_process_thread(kill_rx: Receiver<u32>) -> (Receiver<Vec<Process>>, Receiver<String>) {
     let (tx, rx) = std::sync::mpsc::channel();
     let (kill_tx, kill_msg_rx) = std::sync::mpsc::channel();
 
@@ -128,7 +126,7 @@ pub fn create_process_thread(
 
             system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, refresh_kind);
 
-            let processes: Vec<processes::Process> = system
+            let processes: Vec<Process> = system
                 .processes()
                 .iter()
                 .filter(|(_, process)| process.thread_kind() != Some(sysinfo::ThreadKind::Userland))
@@ -139,7 +137,7 @@ pub fn create_process_thread(
                         .map(|user| user.name().to_string())
                         .unwrap_or_else(|| "Unknown".to_string());
 
-                    processes::Process {
+                    Process {
                         pid: pid.as_u32(),
                         name: process.name().to_os_string(),
                         cpu_usage: process.cpu_usage(),

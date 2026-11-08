@@ -7,11 +7,7 @@ use ratatui::{
     widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Paragraph, Widget},
 };
 
-#[derive(Debug, Default, Clone)]
-pub struct Memory {
-    pub value: u64,
-    pub history: super::history::History<u64>,
-}
+use crate::system::memory::Memory;
 
 impl super::App {
     fn render_memory(&self, title: &str, memory: &Memory, area: Rect, buf: &mut Buffer) {

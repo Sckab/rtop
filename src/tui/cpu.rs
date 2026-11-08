@@ -7,18 +7,7 @@ use ratatui::{
     widgets::{Axis, Cell, Chart, Dataset, GraphType, Paragraph, Row, Table, Widget},
 };
 
-#[derive(Debug, Clone)]
-pub struct CpuStats {
-    pub number: usize,
-    pub usage: f32,
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct Cpu {
-    pub global_usage: f32,
-    pub cpus: Vec<CpuStats>,
-    pub history: super::history::History<f64>,
-}
+use crate::system::cpu::Cpu;
 
 impl super::App {
     fn render_cpu_graphic(&self, stats: &Cpu, area: Rect, buf: &mut Buffer) {

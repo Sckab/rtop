@@ -2,6 +2,7 @@ use clap::Parser;
 use std::io;
 
 mod cli;
+mod system;
 mod tui;
 
 fn main() -> anyhow::Result<()> {

@@ -98,6 +98,8 @@ impl App {
         let rx_stats = workers::create_stats_thread(terminal_size);
         let (rx_processes, rx_msg_kill) = workers::create_process_thread(rx);
 
+        let mut dirty = true;
+
         while !self.quit {
             if self.states.help_table.selected().is_none() {
                 self.states.help_table.select_first();
@@ -109,6 +111,7 @@ impl App {
             {
                 self.show_kill_failed = false;
                 self.failed_at = None;
+                dirty = true;
             }
 
             if self.kill_process {
@@ -118,6 +121,7 @@ impl App {
 
             while let Ok(stats) = rx_stats.try_recv() {
                 self.stats = stats;
+                dirty = true;
             }
 
             while let Ok(failed) = rx_msg_kill.try_recv() {
@@ -125,9 +129,14 @@ impl App {
                 self.failed_message = failed;
 
                 self.failed_at = Some(std::time::Instant::now());
+                dirty = true;
             }
 
-            while let Ok(processes) = rx_processes.try_recv() {
+            while let Ok(mut processes) = rx_processes.try_recv() {
+                for process in &mut processes {
+                    process.prepare_display(&self.system_info.size_formatter);
+                }
+
                 let selected_pid = self
                     .states
                     .process_table
@@ -155,25 +164,35 @@ impl App {
                 if self.states.process_table.selected().is_none() && !self.processes.is_empty() {
                     self.states.process_table.select_first();
                 }
+
+                dirty = true;
             }
 
-            self.handle_events()?;
-            terminal.draw(|frame| self.render(frame.area(), frame.buffer_mut()))?;
+            if self.handle_events()? {
+                dirty = true;
+            }
+
+            if dirty {
+                terminal.draw(|frame| self.render(frame.area(), frame.buffer_mut()))?;
+                dirty = false;
+            }
         }
 
         Ok(())
     }
 
-    fn handle_events(&mut self) -> io::Result<()> {
+    fn handle_events(&mut self) -> io::Result<bool> {
         if event::poll(std::time::Duration::from_millis(50))? {
             match event::read()? {
                 Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
                     self.handle_key_event(key_event);
+                    Ok(true)
                 }
-                _ => {}
+                Event::Resize(_, _) => Ok(true),
+                _ => Ok(false),
             }
+        } else {
+            Ok(false)
         }
-
-        Ok(())
     }
 }

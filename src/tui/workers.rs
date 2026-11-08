@@ -26,7 +26,8 @@ pub fn create_stats_thread(terminal_size: Size) -> Receiver<SystemStats> {
         let mut total_memory_history = history::History::new(width);
 
         loop {
-            system.refresh_all();
+            system.refresh_memory();
+            system.refresh_cpu_all();
 
             let mut cpus: Vec<cpu::CpuStats> = vec![];
 
@@ -118,10 +119,10 @@ pub fn create_process_thread(
 
         loop {
             while let Ok(pid) = kill_rx.try_recv() {
-                if let Some(process) = system.process(sysinfo::Pid::from_u32(pid)) {
-                    if !process.kill() {
-                        let _ = kill_tx.send(format!("Failed to kill {pid}"));
-                    }
+                if let Some(process) = system.process(sysinfo::Pid::from_u32(pid))
+                    && !process.kill()
+                {
+                    let _ = kill_tx.send(format!("Failed to kill {pid}"));
                 }
             }
 
@@ -146,6 +147,7 @@ pub fn create_process_thread(
                         exe: process.exe().unwrap_or(Path::new("")).to_path_buf(),
                         threads: process.tasks().map(|tasks| tasks.len() + 1).unwrap_or(1),
                         user,
+                        ..Default::default()
                     }
                 })
                 .collect();

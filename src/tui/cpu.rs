@@ -21,7 +21,7 @@ pub struct Cpu {
 }
 
 impl super::App {
-    fn render_cpu_graphic(&self, stats: Cpu, area: Rect, buf: &mut Buffer) {
+    fn render_cpu_graphic(&self, stats: &Cpu, area: Rect, buf: &mut Buffer) {
         let points: Vec<(f64, f64)> = stats
             .history
             .values
@@ -49,7 +49,7 @@ impl super::App {
     }
 
     pub fn render_cpu_usage(&self, area: Rect, buf: &mut Buffer) {
-        let cpu_stats = self.stats.cpu.clone();
+        let cpu_stats = &self.stats.cpu;
 
         let inner_area = super::general::get_borderd_block(" CPU Usage ", false, false, area, buf);
 

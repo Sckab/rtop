@@ -48,7 +48,7 @@ pub fn render_toast(message: &str, area: Rect, buf: &mut Buffer) {
         .min(area.width.saturating_sub(2));
 
     let toast_area = Rect {
-        x: area.x + 2,
+        x: area.x + area.width.saturating_sub(width + 2),
         y: area.y + 1,
         width,
         height: 3,

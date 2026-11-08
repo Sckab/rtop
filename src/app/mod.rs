@@ -38,10 +38,10 @@ impl App {
             size_formatter: Box::new(humansize::make_format(humansize::DECIMAL)),
 
             #[cfg(unix)]
-            user_name: std::env::var("USER").unwrap_or("unkown".to_string()),
+            user_name: std::env::var("USER").unwrap_or("unknown".to_string()),
 
             #[cfg(windows)]
-            user_name: std::env::var("USERNAME").unwrap_or("unkown".to_string()),
+            user_name: std::env::var("USERNAME").unwrap_or("unknown".to_string()),
         };
 
         Ok(Self {

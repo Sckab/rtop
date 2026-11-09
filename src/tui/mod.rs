@@ -7,4 +7,4 @@ mod processes;
 mod render;
 mod widgets;
 
-pub(crate) use processes::prepare_display;
+pub use processes::prepare_display;

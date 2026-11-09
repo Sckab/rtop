@@ -55,17 +55,18 @@ impl crate::app::App {
             _ => 0,
         };
 
-        let title = format!(" Processes ({selected}/{}) ", filtered_processes.len());
+        let title = format!("Processes ({selected}/{})", filtered_processes.len());
 
         let title = if let Some(query) = query
             && !query.is_empty()
         {
-            format!("{title}Search: {query} ")
+            format!("{title} Search: {query}")
         } else {
             title
         };
 
-        let area = super::widgets::get_bordered_block(title, false, false, area, buf);
+        let area =
+            super::widgets::get_bordered_block(format!(" {title} "), false, false, area, buf);
 
         let header =
             Row::new(["PID", "Name", "User", "Threads", "CPU %", "Memory"]).fg(Color::Green);

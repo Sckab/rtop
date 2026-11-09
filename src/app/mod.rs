@@ -5,22 +5,22 @@ use std::io;
 use crate::system::{SystemInfo, SystemStats, process::Process, workers};
 
 mod input;
-pub(crate) mod keymap;
-pub(crate) mod state;
+pub mod keymap;
+pub mod state;
 
 use state::{Mode, TableStates, Toast};
 
 pub struct App {
-    pub(crate) quit: bool,
-    pub(crate) mode: Mode,
-    pub(crate) pending_kill: Option<u32>,
-    pub(crate) toast: Option<Toast>,
-    pub(crate) system_info: SystemInfo,
-    pub(crate) stats: SystemStats,
-    pub(crate) processes: Vec<Process>,
-    pub(crate) tables: TableStates,
-    pub(crate) keys: Vec<keymap::Key>,
-    pub(crate) process_query: Option<String>,
+    pub quit: bool,
+    pub mode: Mode,
+    pub pending_kill: Option<u32>,
+    pub toast: Option<Toast>,
+    pub system_info: SystemInfo,
+    pub stats: SystemStats,
+    pub processes: Vec<Process>,
+    pub tables: TableStates,
+    pub keys: Vec<keymap::Key>,
+    pub process_query: Option<String>,
 }
 
 impl App {

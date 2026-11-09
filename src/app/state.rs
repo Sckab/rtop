@@ -37,8 +37,8 @@ impl Toast {
 }
 
 pub struct TableStates {
-    pub(crate) process_table: TableState,
-    pub(crate) help_table: TableState,
+    pub process_table: TableState,
+    pub help_table: TableState,
 }
 
 impl Default for TableStates {

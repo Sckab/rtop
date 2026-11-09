@@ -36,6 +36,7 @@ impl crate::app::App {
             Mode::ConfirmKill { pid, name } => {
                 super::popups::render_kill_confirmation(name, *pid, area, buf)
             }
+            _ => {}
         }
 
         if let Some(toast) = &self.toast {

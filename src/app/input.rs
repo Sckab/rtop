@@ -6,7 +6,7 @@ use crate::system::process::Process;
 
 impl super::App {
     pub fn handle_key_event(&mut self, key: KeyEvent) {
-        match &self.mode {
+        match &mut self.mode {
             Mode::ConfirmKill { pid, .. } => {
                 let pid = *pid;
 
@@ -38,16 +38,43 @@ impl super::App {
                         };
                     }
                 }
+                KeyCode::Char('/') => {
+                    self.mode = Mode::Search {
+                        query: self.process_query.clone().unwrap_or_default(),
+                    };
+                }
                 code => navigate(&mut self.tables.process_table, self.processes.len(), code),
+            },
+            Mode::Search { query } => match key.code {
+                KeyCode::Esc => {
+                    self.mode = Mode::Normal;
+                }
+                KeyCode::Char(c) => {
+                    query.push(c);
+                }
+                KeyCode::Enter => {
+                    self.process_query = Some(query.clone());
+                    self.mode = Mode::Normal;
+                }
+                KeyCode::Backspace => {
+                    query.pop();
+                }
+                _ => {}
             },
         }
     }
 
     fn selected_process(&self) -> Option<&Process> {
-        self.tables
-            .process_table
-            .selected()
-            .and_then(|index| self.processes.get(index))
+        let index = self.tables.process_table.selected()?;
+
+        let query = match &self.mode {
+            Mode::Search { query } => Some(query.as_str()),
+            _ => self.process_query.as_deref(),
+        };
+
+        Self::filtered_processes(query, &self.processes)
+            .get(index)
+            .copied()
     }
 }
 

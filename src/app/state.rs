@@ -9,6 +9,9 @@ pub enum Mode {
     #[default]
     Normal,
     Help,
+    Search {
+        query: String,
+    },
     ConfirmKill {
         pid: u32,
         name: OsString,

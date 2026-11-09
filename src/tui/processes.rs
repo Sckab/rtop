@@ -2,10 +2,10 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Rect},
     style::{Color, Style, Stylize},
-    widgets::{Row, StatefulWidget, Table, TableState},
+    widgets::{Row, StatefulWidget, Table},
 };
 
-use crate::system::process::Process;
+use crate::{app::state::Mode::Search, system::process::Process};
 
 pub fn prepare_display(process: &mut Process, size_formatter: &dyn Fn(u64) -> String) {
     let exe = process.exe.display().to_string();
@@ -22,54 +22,67 @@ pub fn prepare_display(process: &mut Process, size_formatter: &dyn Fn(u64) -> St
 }
 
 impl crate::app::App {
+    pub fn filtered_processes<'a>(
+        query: Option<&str>,
+        processes: &'a [Process],
+    ) -> Vec<&'a Process> {
+        match query {
+            Some(query) => processes
+                .iter()
+                .filter(|p| {
+                    p.name.to_string_lossy().contains(query)
+                        || p.exe.to_string_lossy().contains(query)
+                })
+                .collect(),
+            None => processes.iter().collect(),
+        }
+    }
+
     pub fn render_processes(&mut self, area: Rect, buf: &mut Buffer) {
+        let query = match &self.mode {
+            crate::app::state::Mode::Search { query } => Some(query.as_str()),
+            _ => self.process_query.as_deref(),
+        };
+
+        let filtered_processes = Self::filtered_processes(query, &self.processes);
+
         let selected_index = self.tables.process_table.selected();
 
         let selected = match selected_index {
-            Some(index) if !self.processes.is_empty() => index.min(self.processes.len() - 1) + 1,
+            Some(index) if !filtered_processes.is_empty() => {
+                index.min(filtered_processes.len() - 1) + 1
+            }
             _ => 0,
         };
 
-        let area = super::widgets::get_bordered_block(
-            format!(" Processes ({selected}/{}) ", self.processes.len()),
-            false,
-            false,
-            area,
-            buf,
-        );
+        let title = format!(" Processes ({selected}/{}) ", filtered_processes.len());
+
+        let title = match self.mode {
+            Search { ref query } => format!("{title}Search: {query} "),
+            _ => title,
+        };
+
+        let area = super::widgets::get_bordered_block(title, false, false, area, buf);
 
         let header =
             Row::new(["PID", "Name", "User", "Threads", "CPU %", "Memory"]).fg(Color::Green);
-
-        let visible_rows = area.height.saturating_sub(1) as usize;
-
-        let offset = Self::process_table_offset(
-            selected_index.unwrap_or(0),
-            self.tables.process_table.offset(),
-            visible_rows,
-            self.processes.len(),
-        );
-        *self.tables.process_table.offset_mut() = offset;
-
-        let visible_processes = || self.processes.iter().skip(offset).take(visible_rows);
 
         let mut pid_width = "PID".len();
         let mut name_width = "Name".len();
         let mut user_width = "User".len();
         let mut threads_width = "Threads".len();
-        let mut cpu_width = "CPU %".len();
         let mut memory_width = "Memory".len();
 
-        for process in &self.processes {
+        for process in &filtered_processes {
             pid_width = pid_width.max(process.pid_display.len());
             name_width = name_width.max(process.display_name.len());
             user_width = user_width.max(process.user.len());
             threads_width = threads_width.max(process.threads_display.len());
-            cpu_width = cpu_width.max(process.cpu_display.len());
             memory_width = memory_width.max(process.memory_display.len());
         }
 
-        let rows: Vec<Row> = visible_processes()
+        let rows: Vec<Row> = filtered_processes
+            .iter()
             .map(|p| {
                 Row::new([
                     p.pid_display.as_str(),
@@ -82,15 +95,6 @@ impl crate::app::App {
             })
             .collect();
 
-        let mut table_state =
-            TableState::default()
-                .with_offset(0)
-                .with_selected(selected_index.map(|index| {
-                    index
-                        .min(self.processes.len().saturating_sub(1))
-                        .saturating_sub(offset)
-                }));
-
         StatefulWidget::render(
             Table::new(
                 rows,
@@ -99,7 +103,7 @@ impl crate::app::App {
                     Constraint::Length(name_width as u16),
                     Constraint::Length(user_width as u16),
                     Constraint::Length(threads_width as u16),
-                    Constraint::Length(cpu_width as u16),
+                    Constraint::Length(6),
                     Constraint::Length(memory_width as u16),
                 ],
             )
@@ -108,24 +112,7 @@ impl crate::app::App {
             .row_highlight_style(Style::new().bg(Color::Green).fg(Color::Black)),
             area,
             buf,
-            &mut table_state,
+            &mut self.tables.process_table,
         );
-    }
-
-    fn process_table_offset(selected: usize, current: usize, visible: usize, len: usize) -> usize {
-        if len == 0 || visible == 0 {
-            return 0;
-        }
-
-        let selected = selected.min(len - 1);
-        let max_offset = len.saturating_sub(visible);
-
-        if selected < current {
-            selected
-        } else if selected >= current + visible {
-            (selected + 1 - visible).min(max_offset)
-        } else {
-            current.min(max_offset)
-        }
     }
 }

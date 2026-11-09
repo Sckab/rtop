@@ -20,6 +20,7 @@ pub struct App {
     pub(crate) processes: Vec<Process>,
     pub(crate) tables: TableStates,
     pub(crate) keys: Vec<keymap::Key>,
+    pub(crate) process_query: Option<String>,
 }
 
 impl App {
@@ -46,6 +47,7 @@ impl App {
             processes: vec![],
             tables: TableStates::default(),
             keys: keymap::default_keys(),
+            process_query: None,
         })
     }
 

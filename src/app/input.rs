@@ -58,7 +58,7 @@ fn navigate(table: &mut TableState, length: usize, key: KeyCode) {
 
     match key {
         KeyCode::Char('j') | KeyCode::Down => {
-            if table.selected().unwrap_or(0) + 1 >= length {
+            if table.selected().unwrap_or(0).saturating_add(1) >= length {
                 table.select_first();
             } else {
                 table.select_next();

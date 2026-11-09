@@ -5,7 +5,7 @@ use ratatui::{
     widgets::{Row, StatefulWidget, Table},
 };
 
-use crate::{app::state::Mode::Search, system::process::Process};
+use crate::system::process::Process;
 
 pub fn prepare_display(process: &mut Process, size_formatter: &dyn Fn(u64) -> String) {
     let exe = process.exe.display().to_string();
@@ -57,9 +57,12 @@ impl crate::app::App {
 
         let title = format!(" Processes ({selected}/{}) ", filtered_processes.len());
 
-        let title = match self.mode {
-            Search { ref query } => format!("{title}Search: {query} "),
-            _ => title,
+        let title = if let Some(query) = query
+            && !query.is_empty()
+        {
+            format!("{title}Search: {query} ")
+        } else {
+            title
         };
 
         let area = super::widgets::get_bordered_block(title, false, false, area, buf);

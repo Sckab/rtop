@@ -1,8 +1,7 @@
 use ratatui::widgets::TableState;
-use std::{
-    ffi::OsString,
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
+
+use crate::system::process::KillRequest;
 
 #[derive(Default)]
 pub enum Mode {
@@ -13,8 +12,7 @@ pub enum Mode {
         text_area: ratatui_textarea::TextArea<'static>,
     },
     ConfirmKill {
-        pid: u32,
-        name: OsString,
+        request: KillRequest,
     },
 }
 

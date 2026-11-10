@@ -1,6 +1,8 @@
 use std::path::Path;
 use std::sync::mpsc::Receiver;
 
+use crate::system::process::{KillRequest, KillResponse};
+
 use super::{SystemStats, cpu, history, memory, process::Process};
 
 pub fn create_stats_thread(width: u16, mut system: sysinfo::System) -> Receiver<SystemStats> {
@@ -78,12 +80,12 @@ pub fn create_stats_thread(width: u16, mut system: sysinfo::System) -> Receiver<
 }
 
 pub fn create_process_thread(
-    kill_rx: Receiver<u32>,
+    kill_rx: Receiver<KillRequest>,
     mut system: sysinfo::System,
     users: sysinfo::Users,
-) -> (Receiver<Vec<Process>>, Receiver<String>) {
+) -> (Receiver<Vec<Process>>, Receiver<KillResponse>) {
     let (tx, rx) = std::sync::mpsc::channel();
-    let (kill_tx, kill_msg_rx) = std::sync::mpsc::channel();
+    let (kill_tx, kill_msg_rx) = std::sync::mpsc::channel::<KillResponse>();
 
     std::thread::spawn(move || {
         let refresh_kind = sysinfo::ProcessRefreshKind::nothing()
@@ -96,11 +98,13 @@ pub fn create_process_thread(
         system.refresh_processes_specifics(sysinfo::ProcessesToUpdate::All, true, refresh_kind);
 
         loop {
-            while let Ok(pid) = kill_rx.try_recv() {
-                if let Some(process) = system.process(sysinfo::Pid::from_u32(pid))
-                    && !process.kill()
-                {
-                    let _ = kill_tx.send(format!("Failed to kill {pid}"));
+            while let Ok(process) = kill_rx.try_recv() {
+                if let Some(p) = system.process(sysinfo::Pid::from_u32(process.pid)) {
+                    if p.start_time() != process.startup_time || !p.kill() {
+                        let _ = kill_tx.send(KillResponse::KillFailed(process.pid));
+                    }
+                } else {
+                    let _ = kill_tx.send(KillResponse::NotFound(process.pid));
                 }
             }
 
@@ -124,6 +128,7 @@ pub fn create_process_thread(
                         memory: process.memory(),
                         exe: process.exe().unwrap_or(Path::new("")).to_path_buf(),
                         threads: process.tasks().map(|tasks| tasks.len() + 1).unwrap_or(1),
+                        startup_time: process.start_time(),
                         user,
                         ..Default::default()
                     }

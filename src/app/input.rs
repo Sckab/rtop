@@ -3,26 +3,22 @@ use ratatui::{style::Style, widgets::TableState};
 use ratatui_textarea::TextArea;
 
 use super::state::Mode;
-use crate::system::process::Process;
+use crate::system::process::{KillRequest, Process};
 
 impl super::App {
     pub fn handle_key_event(&mut self, key: KeyEvent) {
         match &mut self.mode {
-            Mode::ConfirmKill { pid, .. } => {
-                let pid = pid.to_owned();
-
-                match key.code {
-                    KeyCode::Char('y') | KeyCode::Enter => {
-                        self.pending_kill = Some(pid);
-                        self.mode = Mode::Normal;
-                        self.process_query = None;
-                    }
-                    KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Char('q') | KeyCode::Esc => {
-                        self.mode = Mode::Normal;
-                    }
-                    _ => {}
+            Mode::ConfirmKill { request } => match key.code {
+                KeyCode::Char('y') | KeyCode::Enter => {
+                    self.pending_kill = Some(request.clone());
+                    self.mode = Mode::Normal;
+                    self.process_query = None;
                 }
-            }
+                KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Char('q') | KeyCode::Esc => {
+                    self.mode = Mode::Normal;
+                }
+                _ => {}
+            },
             Mode::Help => match key.code {
                 KeyCode::Char('h') | KeyCode::Char('?') | KeyCode::Char('q') | KeyCode::Esc => {
                     self.mode = Mode::Normal;
@@ -35,8 +31,11 @@ impl super::App {
                 KeyCode::Char('K') => {
                     if let Some(process) = self.selected_process() {
                         self.mode = Mode::ConfirmKill {
-                            pid: process.pid,
-                            name: process.name.clone(),
+                            request: KillRequest {
+                                pid: process.pid,
+                                name: process.name.clone(),
+                                startup_time: process.startup_time,
+                            },
                         };
                     }
                 }

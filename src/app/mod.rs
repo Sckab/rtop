@@ -2,7 +2,11 @@ use crossterm::event::{self, Event, KeyEventKind};
 use ratatui::DefaultTerminal;
 use std::io;
 
-use crate::system::{SystemInfo, SystemStats, process::Process, workers};
+use crate::system::{
+    SystemInfo, SystemStats,
+    process::{KillRequest, KillResponse, Process},
+    workers,
+};
 
 mod input;
 pub mod keymap;
@@ -13,7 +17,7 @@ use state::{Mode, TableStates, Toast};
 pub struct App {
     pub quit: bool,
     pub mode: Mode,
-    pub pending_kill: Option<u32>,
+    pub pending_kill: Option<KillRequest>,
     pub toast: Option<Toast>,
     pub system_info: SystemInfo,
     pub stats: SystemStats,
@@ -55,7 +59,7 @@ impl App {
     ) -> io::Result<()> {
         let terminal_size = terminal.size()?;
 
-        let (tx, rx) = std::sync::mpsc::channel::<u32>();
+        let (tx, rx) = std::sync::mpsc::channel::<KillRequest>();
 
         let rx_stats = workers::create_stats_thread(terminal_size.width, stats_system);
         let (rx_processes, rx_msg_kill) = workers::create_process_thread(rx, process_system, users);
@@ -77,7 +81,18 @@ impl App {
                 dirty = true;
             }
 
-            while let Ok(message) = rx_msg_kill.try_recv() {
+            while let Ok(response) = rx_msg_kill.try_recv() {
+                let message = match response {
+                    // This shouldn't happen, but the process may have already exited
+                    // by the time the user confirms the kill request.
+                    KillResponse::NotFound(pid) => {
+                        format!("{pid} not found.")
+                    }
+                    KillResponse::KillFailed(pid) => {
+                        format!("Failed to kill {pid}")
+                    }
+                };
+
                 self.toast = Some(Toast::new(message));
                 dirty = true;
             }

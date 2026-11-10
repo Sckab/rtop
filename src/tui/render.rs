@@ -32,8 +32,8 @@ impl crate::app::App {
             Mode::Help => {
                 super::help::render_help_panel(&self.keys, &mut self.tables.help_table, area, buf)
             }
-            Mode::ConfirmKill { pid, name } => {
-                super::popups::render_kill_confirmation(name, pid, area, buf)
+            Mode::ConfirmKill { request } => {
+                super::popups::render_kill_confirmation(&request.name, &request.pid, area, buf)
             }
             Mode::Search { text_area } => {
                 super::filter::render_process_filter_input(text_area, layout[1], buf);

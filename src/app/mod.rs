@@ -24,20 +24,15 @@ pub struct App {
 }
 
 impl App {
-    pub fn new() -> anyhow::Result<Self> {
+    pub fn new() -> Self {
         let system_info = SystemInfo {
-            host_name: sysinfo::System::host_name()?,
-            os_name: sysinfo::System::name()?,
+            host_name: whoami::hostname().unwrap_or_else(|_| "Unknown".to_string()),
+            os_name: whoami::distro().unwrap_or_else(|_| "Unknown".to_string()),
+            user_name: whoami::username().unwrap_or_else(|_| "Unknown".to_string()),
             size_formatter: Box::new(humansize::make_format(humansize::DECIMAL)),
-
-            #[cfg(unix)]
-            user_name: std::env::var("USER").unwrap_or("unknown".to_string()),
-
-            #[cfg(windows)]
-            user_name: std::env::var("USERNAME").unwrap_or("unknown".to_string()),
         };
 
-        Ok(Self {
+        Self {
             quit: false,
             mode: Mode::Normal,
             pending_kill: None,
@@ -48,16 +43,22 @@ impl App {
             tables: TableStates::default(),
             keys: keymap::default_keys(),
             process_query: None,
-        })
+        }
     }
 
-    pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
+    pub fn run(
+        &mut self,
+        terminal: &mut DefaultTerminal,
+        stats_system: sysinfo::System,
+        process_system: sysinfo::System,
+        users: sysinfo::Users,
+    ) -> io::Result<()> {
         let terminal_size = terminal.size()?;
 
         let (tx, rx) = std::sync::mpsc::channel::<u32>();
 
-        let rx_stats = workers::create_stats_thread(terminal_size.width);
-        let (rx_processes, rx_msg_kill) = workers::create_process_thread(rx);
+        let rx_stats = workers::create_stats_thread(terminal_size.width, stats_system);
+        let (rx_processes, rx_msg_kill) = workers::create_process_thread(rx, process_system, users);
 
         let mut dirty = true;
 

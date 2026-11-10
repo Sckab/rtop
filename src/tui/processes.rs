@@ -39,10 +39,7 @@ impl crate::app::App {
     }
 
     pub fn render_processes(&mut self, area: Rect, buf: &mut Buffer) {
-        let query = match &self.mode {
-            crate::app::state::Mode::Search { text_area } => Some(text_area.lines()[0].as_str()),
-            _ => self.process_query.as_deref(),
-        };
+        let query = self.current_query();
 
         let filtered_processes = Self::filtered_processes(query, &self.processes);
 

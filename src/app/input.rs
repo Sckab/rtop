@@ -49,7 +49,12 @@ impl super::App {
 
                     self.mode = Mode::Search { text_area };
                 }
-                code => navigate(&mut self.tables.process_table, self.processes.len(), code),
+                code => {
+                    let length =
+                        Self::filtered_processes(self.current_query(), &self.processes).len();
+
+                    navigate(&mut self.tables.process_table, length, code)
+                }
             },
             Mode::Search { text_area } => match key.code {
                 KeyCode::Esc => {
@@ -70,12 +75,7 @@ impl super::App {
     fn selected_process(&self) -> Option<&Process> {
         let index = self.tables.process_table.selected()?;
 
-        let query = match &self.mode {
-            Mode::Search { text_area } => Some(text_area.lines()[0].as_str()),
-            _ => self.process_query.as_deref(),
-        };
-
-        Self::filtered_processes(query, &self.processes)
+        Self::filtered_processes(self.current_query(), &self.processes)
             .get(index)
             .copied()
     }

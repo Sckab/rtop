@@ -1,5 +1,4 @@
 use clap::Parser;
-use std::io;
 
 mod app;
 mod cli;
@@ -9,7 +8,12 @@ mod tui;
 fn main() -> anyhow::Result<()> {
     cli::Cli::parse();
 
-    ratatui::run(|terminal| app::App::new().map_err(io::Error::other)?.run(terminal))?;
+    let stats_system = sysinfo::System::new()?;
+    let process_system = sysinfo::System::new()?;
+
+    let users = sysinfo::Users::new_with_refreshed_list()?;
+
+    ratatui::run(|terminal| app::App::new().run(terminal, stats_system, process_system, users))?;
 
     Ok(())
 }

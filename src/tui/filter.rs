@@ -4,6 +4,17 @@ use ratatui::{
     widgets::{Clear, Widget},
 };
 
+use crate::app::state::Mode;
+
+impl crate::app::App {
+    pub fn current_query(&self) -> Option<&str> {
+        match &self.mode {
+            Mode::Search { text_area } => Some(text_area.lines()[0].as_str()),
+            _ => self.process_query.as_deref(),
+        }
+    }
+}
+
 pub fn render_process_filter_input(
     text_area: &ratatui_textarea::TextArea,
     area: Rect,

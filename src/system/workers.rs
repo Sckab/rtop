@@ -3,19 +3,11 @@ use std::sync::mpsc::Receiver;
 
 use super::{SystemStats, cpu, history, memory, process::Process};
 
-pub fn create_stats_thread(width: u16) -> Receiver<SystemStats> {
+pub fn create_stats_thread(width: u16, mut system: sysinfo::System) -> Receiver<SystemStats> {
     let (tx, rx) = std::sync::mpsc::channel::<SystemStats>();
 
     // we need to create a separate thread as the std::thread::sleep() will block the user input events
     std::thread::spawn(move || {
-        let mut system = match sysinfo::System::new() {
-            Ok(system) => system,
-            Err(error) => {
-                eprintln!("Failed to initialize system: {error}");
-                return;
-            }
-        };
-
         let width = (width / 2).max(1) as usize;
 
         let mut cpu_history = history::History::new(width);
@@ -85,27 +77,15 @@ pub fn create_stats_thread(width: u16) -> Receiver<SystemStats> {
     rx
 }
 
-pub fn create_process_thread(kill_rx: Receiver<u32>) -> (Receiver<Vec<Process>>, Receiver<String>) {
+pub fn create_process_thread(
+    kill_rx: Receiver<u32>,
+    mut system: sysinfo::System,
+    users: sysinfo::Users,
+) -> (Receiver<Vec<Process>>, Receiver<String>) {
     let (tx, rx) = std::sync::mpsc::channel();
     let (kill_tx, kill_msg_rx) = std::sync::mpsc::channel();
 
     std::thread::spawn(move || {
-        let mut system = match sysinfo::System::new() {
-            Ok(system) => system,
-            Err(error) => {
-                eprintln!("Failed to initialize system: {error}");
-                return;
-            }
-        };
-
-        let users = match sysinfo::Users::new_with_refreshed_list() {
-            Ok(users) => users,
-            Err(error) => {
-                eprintln!("Failed to retrieve users: {error}");
-                return;
-            }
-        };
-
         let refresh_kind = sysinfo::ProcessRefreshKind::nothing()
             .with_memory()
             .with_cpu()

@@ -13,10 +13,12 @@ impl<T> History<T> {
     }
 
     pub fn push(&mut self, value: T, width: usize) {
-        if self.values.len() >= width && width > 0 {
+        while self.values.len() >= width && !self.values.is_empty() {
             self.values.pop_front();
         }
 
-        self.values.push_back(value);
+        if width > 0 {
+            self.values.push_back(value);
+        }
     }
 }

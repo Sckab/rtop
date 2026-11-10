@@ -75,6 +75,9 @@ or `Esc`.
 | `g`, `←`   | Select the first process          |
 | `G`, `→`   | Select the last process           |
 | `K`        | Kill the selected process         |
+| `/`        | Filter processes                  |
+| `Esc`      | Cancel the filter input           |
+| `Enter`    | Confirm the filter                |
 
 Inside the kill confirmation dialog:
 
@@ -104,6 +107,9 @@ Additional overlays:
 - **Kill confirmation** (`K`) — asks for confirmation before sending the signal.
 - **Error toast** — appears in the top-right corner for 3 seconds if a process
   cannot be killed (e.g. insufficient permissions).
+- **Filter input** (`/`) — opens an input field to filter processes by name,
+  executable path. Updates the process list as you type; press `Esc` to clear
+  the filter.
 
 > Note: killing a process requires the appropriate permissions. On Unix systems,
 > the process is terminated with `SIGKILL`, and processes owned by other users can
@@ -125,36 +131,6 @@ The threads communicate through `std::sync::mpsc` channels, so sampling never
 blocks input handling or rendering. Display strings are precomputed once per
 refresh rather than on every frame.
 
-## Project Structure
-
-```text
-src/
-├── main.rs             # Entry point: CLI parsing and terminal setup
-├── cli.rs              # clap command definition
-├── app/
-│   ├── mod.rs          # App state and main event loop
-│   ├── state.rs        # Modes, table states, toast
-│   ├── input.rs        # Key event handling and navigation
-│   └── keymap.rs       # Keybinding definitions shown in the help panel
-├── system/
-│   ├── mod.rs          # SystemInfo / SystemStats
-│   ├── cpu.rs          # CPU stats model
-│   ├── memory.rs       # Memory stats model
-│   ├── history.rs      # Fixed-capacity history buffer
-│   ├── process.rs      # Process model
-│   └── workers.rs      # Background sampling threads
-└── tui/
-    ├── mod.rs
-    ├── render.rs       # Top-level layout
-    ├── header.rs       # Header bar
-    ├── cpu.rs          # CPU panel and graph
-    ├── memory.rs       # Memory panel and graphs
-    ├── processes.rs    # Process table
-    ├── help.rs         # Help overlay
-    ├── popups.rs       # Kill confirmation and error toast
-    └── widgets.rs      # Shared bordered block helper
-```
-
 ## Development
 
 ```bash
@@ -166,7 +142,7 @@ cargo clippy           # Run lints
 
 ## Limitations
 
-- No sorting or filtering of the process list yet.
+- No sorting of the process list yet.
 - No configurable refresh intervals or themes.
 - No tree visualization of the processes.
 - Process names and executable paths for processes owned by other users may be

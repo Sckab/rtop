@@ -1,6 +1,6 @@
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, HorizontalAlignment, Layout, Rect},
     style::{Color, Style, Stylize},
     symbols::Marker,
     text::Span,
@@ -29,7 +29,11 @@ impl crate::app::App {
             .data(&points);
 
         let x_axis = Axis::default().bounds([0.0, area.width as f64]);
-        let y_axis = Axis::default().bounds([0.0, area.height as f64]);
+        let y_axis = Axis::default()
+            .labels(["0%", "50%", "100%"])
+            .labels_alignment(HorizontalAlignment::Right)
+            .style(Style::default().fg(Color::Green))
+            .bounds([0.0, area.height as f64]);
 
         Chart::new(vec![data])
             .x_axis(x_axis)
@@ -74,7 +78,7 @@ impl crate::app::App {
 
         let panel_layout = Layout::new(
             Direction::Vertical,
-            [Constraint::Length((rows + 4) as u16), Constraint::Fill(1)],
+            [Constraint::Length((rows + 3) as u16), Constraint::Fill(1)],
         )
         .split(inner_area);
 

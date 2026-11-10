@@ -29,12 +29,11 @@ impl crate::app::App {
         self.render_processes(info_layout[1], buf);
 
         match &self.mode {
-            Mode::Normal => {}
             Mode::Help => {
                 super::help::render_help_panel(&self.keys, &mut self.tables.help_table, area, buf)
             }
             Mode::ConfirmKill { pid, name } => {
-                super::popups::render_kill_confirmation(name, *pid, area, buf)
+                super::popups::render_kill_confirmation(name, pid, area, buf)
             }
             _ => {}
         }

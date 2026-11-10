@@ -14,6 +14,7 @@ impl super::App {
                     KeyCode::Char('y') | KeyCode::Enter => {
                         self.pending_kill = Some(pid);
                         self.mode = Mode::Normal;
+                        self.process_query = None;
                     }
                     KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Char('q') | KeyCode::Esc => {
                         self.mode = Mode::Normal;

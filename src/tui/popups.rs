@@ -8,7 +8,7 @@ use ratatui::{
     widgets::{Clear, Paragraph, Widget},
 };
 
-pub fn render_kill_confirmation(name: &OsStr, pid: u32, area: Rect, buf: &mut Buffer) {
+pub fn render_kill_confirmation(name: &OsStr, pid: &u32, area: Rect, buf: &mut Buffer) {
     let main_text = format!("Are you sure to kill \"{}\"?", name.display());
 
     let area = area.centered(

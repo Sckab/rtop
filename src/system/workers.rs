@@ -5,23 +5,30 @@ use crate::system::process::{KillRequest, KillResponse};
 
 use super::{SystemStats, cpu, history, memory, process::Process};
 
-pub fn create_stats_thread(width: u16, mut system: sysinfo::System) -> Receiver<SystemStats> {
+pub fn create_stats_thread(
+    rx_width: Receiver<usize>,
+    mut system: sysinfo::System,
+) -> Receiver<SystemStats> {
     let (tx, rx) = std::sync::mpsc::channel::<SystemStats>();
 
     // we need to create a separate thread as the std::thread::sleep() will block the user input events
     std::thread::spawn(move || {
-        let width = (width / 2).max(1) as usize;
+        let mut cpu_history = history::History::new();
 
-        let mut cpu_history = history::History::new(width);
+        let mut used_memory_history = history::History::new();
+        let mut available_memory_history = history::History::new();
+        let mut free_memory_history = history::History::new();
+        let mut total_memory_history = history::History::new();
 
-        let mut used_memory_history = history::History::new(width);
-        let mut available_memory_history = history::History::new(width);
-        let mut free_memory_history = history::History::new(width);
-        let mut total_memory_history = history::History::new(width);
+        let mut width = 0;
 
         loop {
             system.refresh_memory();
             system.refresh_cpu_all();
+
+            while let Ok(w) = rx_width.try_recv() {
+                width = w;
+            }
 
             let mut cpus: Vec<cpu::CpuStats> = vec![];
 
@@ -37,12 +44,12 @@ pub fn create_stats_thread(width: u16, mut system: sysinfo::System) -> Receiver<
             let free_memory = system.free_memory();
             let total_memory = system.total_memory();
 
-            cpu_history.push(system.global_cpu_usage() as f64);
+            cpu_history.push(system.global_cpu_usage() as f64, width);
 
-            used_memory_history.push(used_memory);
-            available_memory_history.push(available_memory);
-            free_memory_history.push(free_memory);
-            total_memory_history.push(total_memory);
+            used_memory_history.push(used_memory, width);
+            available_memory_history.push(available_memory, width);
+            free_memory_history.push(free_memory, width);
+            total_memory_history.push(total_memory, width);
 
             let stats = SystemStats {
                 memory_used: memory::Memory {

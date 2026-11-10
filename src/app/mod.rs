@@ -57,23 +57,27 @@ impl App {
         process_system: sysinfo::System,
         users: sysinfo::Users,
     ) -> io::Result<()> {
-        let terminal_size = terminal.size()?;
+        let (tx_kill, rx_kill) = std::sync::mpsc::channel::<KillRequest>();
+        let (tx_width, rx_width) = std::sync::mpsc::channel::<usize>();
 
-        let (tx, rx) = std::sync::mpsc::channel::<KillRequest>();
+        let _ = tx_width.send((terminal.size()?.width / 2) as usize);
 
-        let rx_stats = workers::create_stats_thread(terminal_size.width, stats_system);
-        let (rx_processes, rx_msg_kill) = workers::create_process_thread(rx, process_system, users);
+        let rx_stats = workers::create_stats_thread(rx_width, stats_system);
+        let (rx_processes, rx_msg_kill) =
+            workers::create_process_thread(rx_kill, process_system, users);
 
         let mut dirty = true;
 
         while !self.quit {
+            let _ = tx_width.send((terminal.size()?.width / 2) as usize);
+
             if self.toast.as_ref().is_some_and(Toast::is_expired) {
                 self.toast = None;
                 dirty = true;
             }
 
             if let Some(pid) = self.pending_kill.take() {
-                let _ = tx.send(pid);
+                let _ = tx_kill.send(pid);
             }
 
             while let Ok(stats) = rx_stats.try_recv() {

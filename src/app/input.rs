@@ -1,5 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::widgets::TableState;
+use ratatui::{style::Style, widgets::TableState};
+use ratatui_textarea::TextArea;
 
 use super::state::Mode;
 use crate::system::process::Process;
@@ -8,7 +9,7 @@ impl super::App {
     pub fn handle_key_event(&mut self, key: KeyEvent) {
         match &mut self.mode {
             Mode::ConfirmKill { pid, .. } => {
-                let pid = *pid;
+                let pid = pid.to_owned();
 
                 match key.code {
                     KeyCode::Char('y') | KeyCode::Enter => {
@@ -40,27 +41,28 @@ impl super::App {
                     }
                 }
                 KeyCode::Char('/') => {
-                    self.mode = Mode::Search {
-                        query: self.process_query.clone().unwrap_or_default(),
-                    };
+                    let mut text_area =
+                        TextArea::new(vec![self.process_query.clone().unwrap_or_default()]);
+
+                    text_area.move_cursor(ratatui_textarea::CursorMove::End);
+                    text_area.set_cursor_line_style(Style::default());
+
+                    self.mode = Mode::Search { text_area };
                 }
                 code => navigate(&mut self.tables.process_table, self.processes.len(), code),
             },
-            Mode::Search { query } => match key.code {
+            Mode::Search { text_area } => match key.code {
                 KeyCode::Esc => {
                     self.mode = Mode::Normal;
-                }
-                KeyCode::Char(c) => {
-                    query.push(c);
+                    self.process_query = None;
                 }
                 KeyCode::Enter => {
-                    self.process_query = Some(query.clone());
+                    self.process_query = Some(text_area.lines()[0].clone());
                     self.mode = Mode::Normal;
                 }
-                KeyCode::Backspace => {
-                    query.pop();
+                _ => {
+                    text_area.input(key);
                 }
-                _ => {}
             },
         }
     }
@@ -69,7 +71,7 @@ impl super::App {
         let index = self.tables.process_table.selected()?;
 
         let query = match &self.mode {
-            Mode::Search { query } => Some(query.as_str()),
+            Mode::Search { text_area } => Some(text_area.lines()[0].as_str()),
             _ => self.process_query.as_deref(),
         };
 

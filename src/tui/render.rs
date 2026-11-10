@@ -35,6 +35,9 @@ impl crate::app::App {
             Mode::ConfirmKill { pid, name } => {
                 super::popups::render_kill_confirmation(name, pid, area, buf)
             }
+            Mode::Search { text_area } => {
+                super::filter::render_process_filter_input(text_area, layout[1], buf);
+            }
             _ => {}
         }
 

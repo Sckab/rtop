@@ -24,5 +24,7 @@ pub fn default_keys() -> Vec<Key> {
         Key::new("G", "Right", "Select last process"),
         Key::new("K", "", "Kill selected process"),
         Key::new("/", "", "Filter processes"),
+        Key::new("Esc", "", "Cancel the filter input"),
+        Key::new("Enter", "", "Confirm the filter"),
     ]
 }

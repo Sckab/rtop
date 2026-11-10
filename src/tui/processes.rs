@@ -5,7 +5,7 @@ use ratatui::{
     widgets::{Row, StatefulWidget, Table},
 };
 
-use crate::system::process::Process;
+use crate::{app::state::Mode, system::process::Process};
 
 pub fn prepare_display(process: &mut Process, size_formatter: &dyn Fn(u64) -> String) {
     let exe = process.exe.display().to_string();
@@ -40,7 +40,7 @@ impl crate::app::App {
 
     pub fn render_processes(&mut self, area: Rect, buf: &mut Buffer) {
         let query = match &self.mode {
-            crate::app::state::Mode::Search { query } => Some(query.as_str()),
+            crate::app::state::Mode::Search { text_area } => Some(text_area.lines()[0].as_str()),
             _ => self.process_query.as_deref(),
         };
 
@@ -59,6 +59,7 @@ impl crate::app::App {
 
         let title = if let Some(query) = query
             && !query.is_empty()
+            && !matches!(self.mode, Mode::Search { .. })
         {
             format!("{title} Search: {query}")
         } else {

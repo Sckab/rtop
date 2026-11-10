@@ -10,7 +10,7 @@ pub enum Mode {
     Normal,
     Help,
     Search {
-        query: String,
+        text_area: ratatui_textarea::TextArea<'static>,
     },
     ConfirmKill {
         pid: u32,

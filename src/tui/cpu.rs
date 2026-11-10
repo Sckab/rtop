@@ -28,7 +28,7 @@ impl crate::app::App {
             .graph_type(GraphType::Line)
             .data(&points);
 
-        let x_axis = Axis::default().bounds([0.0, area.width as f64]);
+        let x_axis = Axis::default().bounds([0.0, area.width.saturating_sub(5) as f64]);
         let y_axis = Axis::default()
             .labels(["0%", "50%", "100%"])
             .labels_alignment(HorizontalAlignment::Right)

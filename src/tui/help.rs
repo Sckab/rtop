@@ -57,7 +57,7 @@ fn general_table(keys: Vec<keymap::Key>, spacing: u16, area: Rect, buf: &mut Buf
 }
 
 fn sorting_table(keys: Vec<keymap::Key>, spacing: u16, area: Rect, buf: &mut Buffer) {
-    let (primary_width, ..) = get_maximum_widths(&keys);
+    let (primary_width, secondary_width, _) = get_maximum_widths(&keys);
 
     let rows = keys.iter().map(|key| {
         let primary = Span::raw(key.primary_key.clone());
@@ -68,7 +68,10 @@ fn sorting_table(keys: Vec<keymap::Key>, spacing: u16, area: Rect, buf: &mut Buf
 
     Table::new(
         rows,
-        [Constraint::Length(primary_width), Constraint::Fill(1)],
+        [
+            Constraint::Length(primary_width + secondary_width + spacing),
+            Constraint::Fill(1),
+        ],
     )
     .column_spacing(spacing)
     .render(area, buf);
@@ -108,5 +111,5 @@ pub fn render_help_panel(keys: keymap::Keys, area: Rect, buf: &mut Buffer) {
     Paragraph::new(sorting_title)
         .style(Style::default().fg(Color::Green))
         .render(layout[1], buf);
-    sorting_table(keys.sorting, 6, layout[2], buf);
+    sorting_table(keys.sorting, COLUMN_SPACING, layout[2], buf);
 }

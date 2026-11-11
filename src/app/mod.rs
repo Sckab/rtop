@@ -154,7 +154,7 @@ impl App {
     }
 
     fn handle_events(&mut self) -> io::Result<bool> {
-        if event::poll(std::time::Duration::from_millis(50))? {
+        if event::poll(std::time::Duration::from_millis(100))? {
             match event::read()? {
                 Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
                     self.handle_key_event(key_event);

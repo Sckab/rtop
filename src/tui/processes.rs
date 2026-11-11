@@ -2,7 +2,8 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Rect},
     style::{Color, Style, Stylize},
-    widgets::{Row, StatefulWidget, Table},
+    text::Span,
+    widgets::{Cell, Row, StatefulWidget, Table},
 };
 
 use crate::{
@@ -175,7 +176,15 @@ impl crate::app::App {
             Sort::None => {}
         }
 
-        let header = Row::new(table_columns.clone()).fg(Color::Green);
+        let header = Row::new([
+            Cell::new(Span::raw(table_columns[0].clone()).into_right_aligned_line()),
+            Cell::new(table_columns[1].clone()),
+            Cell::new(table_columns[2].clone()),
+            Cell::new(table_columns[3].clone()),
+            Cell::new(table_columns[4].clone()),
+            Cell::new(table_columns[5].clone()),
+        ])
+        .fg(Color::Green);
 
         let mut pid_width = table_columns[0].len();
         let mut name_width = table_columns[1].len();
@@ -194,13 +203,15 @@ impl crate::app::App {
         let rows: Vec<Row> = filtered_processes
             .iter()
             .map(|p| {
+                let pid = Span::raw(p.pid_display.as_str()).into_right_aligned_line();
+
                 Row::new([
-                    p.pid_display.as_str(),
-                    p.display_name.as_str(),
-                    p.user.as_str(),
-                    p.threads_display.as_str(),
-                    p.cpu_display.as_str(),
-                    p.memory_display.as_str(),
+                    Cell::new(pid),
+                    Cell::new(p.display_name.as_str()),
+                    Cell::new(p.user.as_str()),
+                    Cell::new(p.threads_display.as_str()),
+                    Cell::new(p.cpu_display.as_str()),
+                    Cell::new(p.memory_display.as_str()),
                 ])
             })
             .collect();

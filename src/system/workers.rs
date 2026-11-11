@@ -79,7 +79,7 @@ pub fn create_stats_thread(
                 break;
             }
 
-            std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+            std::thread::sleep(std::time::Duration::from_millis(500));
         }
     });
 

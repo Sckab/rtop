@@ -38,21 +38,36 @@ impl crate::app::App {
     pub fn render_memory_usage(&self, area: Rect, buf: &mut Buffer) {
         let area = super::widgets::get_bordered_block(" Memory Usage ", false, false, area, buf);
 
-        let layout = Layout::vertical([
-            Constraint::Length(1),
-            Constraint::Length(1),
-            Constraint::Length(1),
-            Constraint::Fill(1),
-            Constraint::Length(1),
-        ])
-        .split(area);
+        // On Windows, available memory is always equal to free memory, so the
+        // Available row is omitted and its space is given to the graph.
+        #[cfg(windows)]
+        const FREE_ROW: usize = 1;
+        #[cfg(not(windows))]
+        const FREE_ROW: usize = 2;
+
+        const CHART_ROW: usize = FREE_ROW + 1;
+        const TOTAL_ROW: usize = CHART_ROW + 1;
+
+        let mut constraints = vec![Constraint::Length(1)]; // Used
+
+        #[cfg(not(windows))]
+        {
+            constraints.push(Constraint::Length(1)); // Available
+        }
+
+        constraints.push(Constraint::Length(1)); // Free
+        constraints.push(Constraint::Fill(1)); // Graph
+        constraints.push(Constraint::Length(1)); // Total
+
+        let layout = Layout::vertical(constraints).split(area);
 
         const USED_COLOR: Color = Color::Red;
-        const AVAILABLE_COLOR: Color = Color::Yellow;
         const FREE_COLOR: Color = Color::Green;
 
+        #[cfg(not(windows))]
+        const AVAILABLE_COLOR: Color = Color::Yellow;
+
         let used = Span::raw("Used: ").fg(USED_COLOR);
-        let available = Span::raw("Available: ").fg(AVAILABLE_COLOR);
         let free = Span::raw("Free: ").fg(FREE_COLOR);
 
         Paragraph::new(
@@ -60,42 +75,55 @@ impl crate::app::App {
         )
         .render(layout[0], buf);
         Paragraph::new(
-            available + (self.system_info.size_formatter)(self.stats.memory_available.value).into(),
-        )
-        .render(layout[1], buf);
-        Paragraph::new(
             free + (self.system_info.size_formatter)(self.stats.memory_free.value).into(),
         )
-        .render(layout[2], buf);
+        .render(layout[FREE_ROW], buf);
 
-        let width = layout[3].width;
+        #[cfg(not(windows))]
+        {
+            let available = Span::raw("Available: ").fg(AVAILABLE_COLOR);
+
+            Paragraph::new(
+                available
+                    + (self.system_info.size_formatter)(self.stats.memory_available.value).into(),
+            )
+            .render(layout[1], buf);
+        }
+
+        let width = layout[CHART_ROW].width;
 
         let x_axis = Axis::default().bounds([0.0, width as f64 - 0.5]);
         let y_axis = Axis::default().bounds([0.0, 100.0]);
 
         let mut used_points = Vec::new();
-        let mut available_points = Vec::new();
         let mut free_points = Vec::new();
 
-        Chart::new(vec![
-            self.get_dataset(width, &mut used_points, USED_COLOR, &self.stats.memory_used),
-            self.get_dataset(
-                width,
-                &mut available_points,
-                AVAILABLE_COLOR,
-                &self.stats.memory_available,
-            ),
-            self.get_dataset(width, &mut free_points, FREE_COLOR, &self.stats.memory_free),
-        ])
-        .x_axis(x_axis)
-        .y_axis(y_axis)
-        .render(layout[3], buf);
+        #[cfg(not(windows))]
+        let mut available_points = Vec::new();
+
+        let mut data =
+            vec![self.get_dataset(width, &mut free_points, FREE_COLOR, &self.stats.memory_free)];
+
+        #[cfg(not(windows))]
+        data.push(self.get_dataset(
+            width,
+            &mut available_points,
+            AVAILABLE_COLOR,
+            &self.stats.memory_available,
+        ));
+
+        data.push(self.get_dataset(width, &mut used_points, USED_COLOR, &self.stats.memory_used));
+
+        Chart::new(data)
+            .x_axis(x_axis)
+            .y_axis(y_axis)
+            .render(layout[CHART_ROW], buf);
 
         let title = Span::raw("Total: ").fg(Color::Green);
         let size_formatted = Span::raw((self.system_info.size_formatter)(
             self.stats.memory_total.value,
         ));
 
-        Paragraph::new(title + size_formatted).render(layout[4], buf);
+        Paragraph::new(title + size_formatted).render(layout[TOTAL_ROW], buf);
     }
 }

@@ -9,14 +9,14 @@ use ratatui::{
 use crate::{app::keymap, tui::widgets::get_bordered_block};
 
 fn get_maximum_widths(keys: &[keymap::Key]) -> (u16, u16, u16) {
-    let mut primary_width = "Primary".cell_width() as u16;
-    let mut secondary_width = "Secondary".cell_width() as u16;
-    let mut description_width = "Description".cell_width() as u16;
+    let mut primary_width = "Primary".cell_width();
+    let mut secondary_width = "Secondary".cell_width();
+    let mut description_width = "Description".cell_width();
 
     for key in keys {
-        primary_width = primary_width.max(key.primary_key.cell_width() as u16);
-        secondary_width = secondary_width.max(key.secondary_key.cell_width() as u16);
-        description_width = description_width.max(key.description.cell_width() as u16);
+        primary_width = primary_width.max(key.primary_key.cell_width());
+        secondary_width = secondary_width.max(key.secondary_key.cell_width());
+        description_width = description_width.max(key.description.cell_width());
     }
 
     (primary_width, secondary_width, description_width)
@@ -87,7 +87,7 @@ pub fn render_help_panel(keys: keymap::Keys, area: Rect, buf: &mut Buffer) {
         general_widths.0 + general_widths.1 + general_widths.2 + (2 * COLUMN_SPACING);
 
     let sorting_title = "Sorting (ascending, Shift for Descending)";
-    let sorting_width = sorting_title.cell_width() as u16;
+    let sorting_width = sorting_title.cell_width();
 
     let sorting_width = sorting_width.max(sorting_widths.0 + sorting_widths.2 + COLUMN_SPACING);
 

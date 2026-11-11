@@ -7,6 +7,7 @@ pub mod workers;
 #[derive(Debug, Default)]
 pub struct SystemStats {
     pub memory_used: memory::Memory,
+    #[cfg_attr(windows, allow(dead_code))]
     pub memory_available: memory::Memory,
     pub memory_free: memory::Memory,
     pub memory_total: memory::Memory,

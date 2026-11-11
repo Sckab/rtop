@@ -3,7 +3,10 @@ use std::time::{Duration, Instant};
 
 use crate::system::process::KillRequest;
 
+// A single `Mode` is stored in `App`, so boxing the large `TextArea` variant
+// would only add an allocation and indirection without a measurable benefit.
 #[derive(Default)]
+#[allow(clippy::large_enum_variant)]
 pub enum Mode {
     #[default]
     Normal,
@@ -34,14 +37,7 @@ impl Toast {
     }
 }
 
+#[derive(Default)]
 pub struct TableStates {
     pub process_table: TableState,
-}
-
-impl Default for TableStates {
-    fn default() -> Self {
-        Self {
-            process_table: TableState::default(),
-        }
-    }
 }

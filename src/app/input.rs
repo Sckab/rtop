@@ -115,9 +115,13 @@ impl super::App {
     fn selected_process(&self) -> Option<&Process> {
         let index = self.tables.process_table.selected()?;
 
-        Self::filtered_processes(self.current_query(), &self.processes_state.processes)
-            .get(index)
-            .copied()
+        Self::filtered_and_sorted_processes(
+            self.current_query(),
+            &self.processes_state.processes,
+            &self.processes_state.sort,
+        )
+        .get(index)
+        .copied()
     }
 }
 

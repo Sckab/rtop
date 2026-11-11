@@ -104,13 +104,26 @@ impl crate::app::App {
         }
     }
 
+    pub fn filtered_and_sorted_processes<'a>(
+        query: Option<&str>,
+        processes: &'a [Process],
+        sort: &Sort,
+    ) -> Vec<&'a Process> {
+        let mut filtered = Self::filtered_processes(query, processes);
+
+        sort_processes(&mut filtered, sort);
+
+        filtered
+    }
+
     pub fn render_processes(&mut self, area: Rect, buf: &mut Buffer) {
         let query = self.current_query();
 
-        let mut filtered_processes =
-            Self::filtered_processes(query, &self.processes_state.processes);
-
-        sort_processes(&mut filtered_processes, &self.processes_state.sort);
+        let filtered_processes = Self::filtered_and_sorted_processes(
+            query,
+            &self.processes_state.processes,
+            &self.processes_state.sort,
+        );
 
         let selected_index = self.tables.process_table.selected();
 

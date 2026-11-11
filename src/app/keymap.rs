@@ -25,7 +25,7 @@ impl Keys {
     pub fn new() -> Self {
         let general = vec![
             Key::new("h", "?", "Shows this help panel"),
-            Key::new("q", "Esc", "Quit the application (or this panel)"),
+            Key::new("q", "Esc", "Quit the application"),
             Key::new("k", "Up", "Select previous process"),
             Key::new("j", "Down", "Select next process"),
             Key::new("g", "Left", "Select first process"),

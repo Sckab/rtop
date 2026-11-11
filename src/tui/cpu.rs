@@ -11,16 +11,16 @@ use crate::system::cpu::Cpu;
 
 impl crate::app::App {
     fn render_cpu_graphic(&self, stats: &Cpu, area: Rect, buf: &mut Buffer) {
+        const Y_AXIS_WIDTH: u16 = 5; // "100%" (4) + axis column (1)
+
+        let plot_width = area.width.saturating_sub(Y_AXIS_WIDTH);
+
         let points: Vec<(f64, f64)> = stats
             .history
             .values
             .iter()
             .enumerate()
-            .map(|(i, usage)| {
-                let normalized = (*usage / 100.0) * area.height as f64;
-
-                (i as f64, normalized)
-            })
+            .map(|(i, usage)| (i as f64, (*usage / 100.0) * area.height as f64))
             .collect();
 
         let data = Dataset::default()
@@ -28,7 +28,10 @@ impl crate::app::App {
             .graph_type(GraphType::Line)
             .data(&points);
 
-        let x_axis = Axis::default().bounds([0.0, area.width.saturating_sub(5) as f64]);
+        // The canvas maps to 2*plot_width - 1 dots: using W - 0.5,
+        // each sample is exactly 2 dots apart, i.e. one cell.
+        // fix by opencode
+        let x_axis = Axis::default().bounds([0.0, plot_width as f64 - 0.5]);
         let y_axis = Axis::default()
             .labels(["0%", "50%", "100%"])
             .labels_alignment(HorizontalAlignment::Right)

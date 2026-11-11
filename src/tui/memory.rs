@@ -23,14 +23,15 @@ impl crate::app::App {
 
         Paragraph::new(title + size_formatted).render(layout[0], buf);
 
-        let points: Vec<(f64, f64)> = memory
-            .history
-            .values
-            .iter()
+        let window = area.width as usize;
+        let values = &memory.history.values;
+        let start = values.len().saturating_sub(window);
+
+        let points: Vec<(f64, f64)> = values
+            .range(start..)
             .enumerate()
             .map(|(i, usage)| {
                 let normalized = (*usage as f64 / self.stats.memory_total.value as f64) * 100.0;
-
                 (i as f64, normalized)
             })
             .collect();
@@ -40,7 +41,7 @@ impl crate::app::App {
             .graph_type(GraphType::Line)
             .data(&points);
 
-        let x_axis = Axis::default().bounds([0.0, 100.0]);
+        let x_axis = Axis::default().bounds([0.0, window as f64 - 0.5]);
         let y_axis = Axis::default().bounds([0.0, 100.0]);
 
         Chart::new(vec![data])

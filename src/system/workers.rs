@@ -44,7 +44,7 @@ pub fn create_stats_thread(
             let free_memory = system.free_memory();
             let total_memory = system.total_memory();
 
-            cpu_history.push(system.global_cpu_usage() as f64, width);
+            cpu_history.push(system.global_cpu_usage() as f64, width.saturating_sub(6));
 
             used_memory_history.push(used_memory, width);
             available_memory_history.push(available_memory, width);

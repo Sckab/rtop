@@ -60,7 +60,7 @@ impl App {
         let (tx_kill, rx_kill) = std::sync::mpsc::channel::<KillRequest>();
         let (tx_width, rx_width) = std::sync::mpsc::channel::<usize>();
 
-        let _ = tx_width.send((terminal.size()?.width / 2).saturating_sub(6) as usize);
+        let _ = tx_width.send((terminal.size()?.width / 2) as usize);
 
         let rx_stats = workers::create_stats_thread(rx_width, stats_system);
         let (rx_processes, rx_msg_kill) =
@@ -69,7 +69,7 @@ impl App {
         let mut dirty = true;
 
         while !self.quit {
-            let _ = tx_width.send((terminal.size()?.width / 2).saturating_sub(6) as usize);
+            let _ = tx_width.send((terminal.size()?.width / 2) as usize);
 
             if self.toast.as_ref().is_some_and(Toast::is_expired) {
                 self.toast = None;

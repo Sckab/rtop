@@ -7,7 +7,7 @@ _A Rust TOP_
 [![Rust](https://img.shields.io/badge/rust-1.95%2B-orange?logo=rust)](https://www.rust-lang.org/)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 
-![showcase](./screenshots/showcase-1.png)
+![showcase](./screenshots/showcase.png)
 
 RTOP is a fast, terminal-based system monitor written in Rust, inspired by `top`.
 It shows CPU and memory usage with live history graphs, plus a sortable and

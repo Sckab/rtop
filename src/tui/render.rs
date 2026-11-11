@@ -29,9 +29,7 @@ impl crate::app::App {
         self.render_processes(info_layout[1], buf);
 
         match &self.mode {
-            Mode::Help => {
-                super::help::render_help_panel(&self.keys, &mut self.tables.help_table, area, buf)
-            }
+            Mode::Help => super::help::render_help_panel(self.keys.clone(), area, buf),
             Mode::ConfirmKill { request } => {
                 super::popups::render_kill_confirmation(&request.name, &request.pid, area, buf)
             }

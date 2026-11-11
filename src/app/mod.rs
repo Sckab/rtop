@@ -20,8 +20,8 @@ pub struct App {
     pub toast: Option<Toast>,
     pub system_info: SystemInfo,
     pub stats: SystemStats,
-    pub tables: TableStates,
-    pub keys: Vec<keymap::Key>,
+    pub tables: TableStates, // we still leave this, it could be useful in the future
+    pub keys: keymap::Keys,
     pub processes_state: ProcessesState,
 }
 
@@ -41,7 +41,7 @@ impl App {
             system_info,
             stats: SystemStats::default(),
             tables: TableStates::default(),
-            keys: keymap::default_keys(),
+            keys: keymap::Keys::new(),
             processes_state: ProcessesState::default(),
         }
     }

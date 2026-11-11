@@ -23,7 +23,7 @@ impl super::App {
                 KeyCode::Char('h') | KeyCode::Char('?') | KeyCode::Char('q') | KeyCode::Esc => {
                     self.mode = Mode::Normal;
                 }
-                code => navigate(&mut self.tables.help_table, self.keys.len(), code),
+                _ => {}
             },
             Mode::Normal => match key.code {
                 KeyCode::Char('q') | KeyCode::Esc => self.quit = true,

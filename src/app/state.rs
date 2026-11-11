@@ -36,17 +36,12 @@ impl Toast {
 
 pub struct TableStates {
     pub process_table: TableState,
-    pub help_table: TableState,
 }
 
 impl Default for TableStates {
     fn default() -> Self {
-        let mut help_table = TableState::default();
-        help_table.select_first();
-
         Self {
             process_table: TableState::default(),
-            help_table,
         }
     }
 }

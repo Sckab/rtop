@@ -10,7 +10,7 @@ impl crate::app::App {
     pub fn current_query(&self) -> Option<&str> {
         match &self.mode {
             Mode::Search { text_area } => Some(text_area.lines()[0].as_str()),
-            _ => self.process_query.as_deref(),
+            _ => self.processes_state.process_query.as_deref(),
         }
     }
 }

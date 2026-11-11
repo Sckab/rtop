@@ -5,7 +5,10 @@ use ratatui::{
     widgets::{Row, StatefulWidget, Table},
 };
 
-use crate::{app::state::Mode, system::process::Process};
+use crate::{
+    app::state::Mode,
+    system::process::{Process, Sort, SortType},
+};
 
 pub fn prepare_display(process: &mut Process, size_formatter: &dyn Fn(u64) -> String) {
     let exe = process.exe.display().to_string();
@@ -19,6 +22,68 @@ pub fn prepare_display(process: &mut Process, size_formatter: &dyn Fn(u64) -> St
     process.threads_display = process.threads.to_string();
     process.cpu_display = format!("{:.1}%", process.cpu_usage);
     process.memory_display = size_formatter(process.memory);
+}
+
+fn sort_processes(processes: &mut Vec<&Process>, sort: &Sort) {
+    match sort {
+        Sort::Pid(sort_type) => match sort_type {
+            SortType::Ascending => {
+                processes.sort_by_key(|p| p.pid);
+            }
+            SortType::Descending => {
+                processes.sort_by_key(|p| std::cmp::Reverse(p.pid));
+            }
+        },
+        Sort::Name(sort_type) => match sort_type {
+            SortType::Ascending => {
+                processes.sort_by_key(|p| p.name.clone());
+            }
+            SortType::Descending => {
+                processes.sort_by_key(|p| std::cmp::Reverse(p.name.clone()));
+            }
+        },
+        Sort::Exe(sort_type) => match sort_type {
+            SortType::Ascending => {
+                processes.sort_by_key(|p| p.exe.clone());
+            }
+            SortType::Descending => {
+                processes.sort_by_key(|p| std::cmp::Reverse(p.exe.clone()));
+            }
+        },
+        Sort::User(sort_type) => match sort_type {
+            SortType::Ascending => {
+                processes.sort_by_key(|p| p.user.clone());
+            }
+            SortType::Descending => {
+                processes.sort_by_key(|p| std::cmp::Reverse(p.user.clone()));
+            }
+        },
+        Sort::Thread(sort_type) => match sort_type {
+            SortType::Ascending => {
+                processes.sort_by_key(|p| p.threads);
+            }
+            SortType::Descending => {
+                processes.sort_by_key(|p| std::cmp::Reverse(p.threads));
+            }
+        },
+        Sort::Cpu(sort_type) => match sort_type {
+            SortType::Ascending => {
+                processes.sort_by(|a, b| a.cpu_usage.total_cmp(&b.cpu_usage));
+            }
+            SortType::Descending => {
+                processes.sort_by(|a, b| b.cpu_usage.total_cmp(&a.cpu_usage));
+            }
+        },
+        Sort::Memory(sort_type) => match sort_type {
+            SortType::Ascending => {
+                processes.sort_by_key(|p| p.memory);
+            }
+            SortType::Descending => {
+                processes.sort_by_key(|p| std::cmp::Reverse(p.memory));
+            }
+        },
+        Sort::None => {}
+    }
 }
 
 impl crate::app::App {
@@ -41,7 +106,10 @@ impl crate::app::App {
     pub fn render_processes(&mut self, area: Rect, buf: &mut Buffer) {
         let query = self.current_query();
 
-        let filtered_processes = Self::filtered_processes(query, &self.processes);
+        let mut filtered_processes =
+            Self::filtered_processes(query, &self.processes_state.processes);
+
+        sort_processes(&mut filtered_processes, &self.processes_state.sort);
 
         let selected_index = self.tables.process_table.selected();
 
@@ -66,14 +134,54 @@ impl crate::app::App {
         let area =
             super::widgets::get_bordered_block(format!(" {title} "), false, false, area, buf);
 
-        let header =
-            Row::new(["PID", "Name", "User", "Threads", "CPU %", "Memory"]).fg(Color::Green);
+        let mut table_columns = [
+            "PID".to_string(),
+            "Name".to_string(),
+            "User".to_string(),
+            "Threads".to_string(),
+            "CPU %".to_string(),
+            "Memory".to_string(),
+        ];
 
-        let mut pid_width = "PID".len();
-        let mut name_width = "Name".len();
-        let mut user_width = "User".len();
-        let mut threads_width = "Threads".len();
-        let mut memory_width = "Memory".len();
+        match &self.processes_state.sort {
+            Sort::Pid(sort_type) => table_columns[0].push_str(match sort_type {
+                SortType::Ascending => " ",
+                SortType::Descending => " ",
+            }),
+            Sort::Name(sort_type) => table_columns[1].push_str(match sort_type {
+                SortType::Ascending => " ",
+                SortType::Descending => " ",
+            }),
+            Sort::Exe(sort_type) => table_columns[1].push_str(match sort_type {
+                SortType::Ascending => "  (exe)",
+                SortType::Descending => "  (exe)",
+            }),
+            Sort::User(sort_type) => table_columns[2].push_str(match sort_type {
+                SortType::Ascending => " ",
+                SortType::Descending => " ",
+            }),
+            Sort::Thread(sort_type) => table_columns[3].push_str(match sort_type {
+                SortType::Ascending => " ",
+                SortType::Descending => " ",
+            }),
+            Sort::Cpu(sort_type) => table_columns[4].push_str(match sort_type {
+                SortType::Ascending => " ",
+                SortType::Descending => " ",
+            }),
+            Sort::Memory(sort_type) => table_columns[5].push_str(match sort_type {
+                SortType::Ascending => " ",
+                SortType::Descending => " ",
+            }),
+            Sort::None => {}
+        }
+
+        let header = Row::new(table_columns.clone()).fg(Color::Green);
+
+        let mut pid_width = table_columns[0].len();
+        let mut name_width = table_columns[1].len();
+        let mut user_width = table_columns[2].len();
+        let mut threads_width = table_columns[3].len();
+        let mut memory_width = table_columns[4].len();
 
         for process in &filtered_processes {
             pid_width = pid_width.max(process.pid_display.len());
@@ -105,7 +213,16 @@ impl crate::app::App {
                     Constraint::Length(name_width as u16),
                     Constraint::Length(user_width as u16),
                     Constraint::Length(threads_width as u16),
-                    Constraint::Length(6),
+                    Constraint::Length(
+                        if matches!(
+                            self.processes_state.sort,
+                            Sort::Cpu(SortType::Ascending) | Sort::Cpu(SortType::Descending)
+                        ) {
+                            7
+                        } else {
+                            6
+                        },
+                    ),
                     Constraint::Length(memory_width as u16),
                 ],
             )

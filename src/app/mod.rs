@@ -4,7 +4,7 @@ use std::io;
 
 use crate::system::{
     SystemInfo, SystemStats,
-    process::{KillRequest, KillResponse, Process},
+    process::{KillRequest, KillResponse, ProcessesState},
     workers,
 };
 
@@ -17,14 +17,12 @@ use state::{Mode, TableStates, Toast};
 pub struct App {
     pub quit: bool,
     pub mode: Mode,
-    pub pending_kill: Option<KillRequest>,
     pub toast: Option<Toast>,
     pub system_info: SystemInfo,
     pub stats: SystemStats,
-    pub processes: Vec<Process>,
     pub tables: TableStates,
     pub keys: Vec<keymap::Key>,
-    pub process_query: Option<String>,
+    pub processes_state: ProcessesState,
 }
 
 impl App {
@@ -39,14 +37,12 @@ impl App {
         Self {
             quit: false,
             mode: Mode::Normal,
-            pending_kill: None,
             toast: None,
             system_info,
             stats: SystemStats::default(),
-            processes: vec![],
             tables: TableStates::default(),
             keys: keymap::default_keys(),
-            process_query: None,
+            processes_state: ProcessesState::default(),
         }
     }
 
@@ -76,7 +72,7 @@ impl App {
                 dirty = true;
             }
 
-            if let Some(pid) = self.pending_kill.take() {
+            if let Some(pid) = self.processes_state.pending_kill.take() {
                 let _ = tx_kill.send(pid);
             }
 
@@ -110,27 +106,34 @@ impl App {
                     .tables
                     .process_table
                     .selected()
-                    .and_then(|index| self.processes.get(index))
+                    .and_then(|index| self.processes_state.processes.get(index))
                     .map(|process| process.pid);
 
-                self.processes = processes;
+                self.processes_state.processes = processes;
 
                 let selected = selected_pid
-                    .and_then(|pid| self.processes.iter().position(|process| process.pid == pid))
+                    .and_then(|pid| {
+                        self.processes_state
+                            .processes
+                            .iter()
+                            .position(|process| process.pid == pid)
+                    })
                     .or_else(|| {
-                        if self.processes.is_empty() {
+                        if self.processes_state.processes.is_empty() {
                             None
                         } else {
                             self.tables
                                 .process_table
                                 .selected()
-                                .map(|index| index.min(self.processes.len() - 1))
+                                .map(|index| index.min(self.processes_state.processes.len() - 1))
                         }
                     });
 
                 self.tables.process_table.select(selected);
 
-                if self.tables.process_table.selected().is_none() && !self.processes.is_empty() {
+                if self.tables.process_table.selected().is_none()
+                    && !self.processes_state.processes.is_empty()
+                {
                     self.tables.process_table.select_first();
                 }
 

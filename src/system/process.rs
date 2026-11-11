@@ -18,6 +18,14 @@ pub struct Process {
     pub display_name: String,
 }
 
+#[derive(Default, Clone)]
+pub struct ProcessesState {
+    pub sort: Sort,
+    pub process_query: Option<String>,
+    pub pending_kill: Option<KillRequest>,
+    pub processes: Vec<Process>,
+}
+
 #[derive(Clone)]
 pub struct KillRequest {
     pub pid: u32,
@@ -29,4 +37,24 @@ pub struct KillRequest {
 pub enum KillResponse {
     NotFound(u32),
     KillFailed(u32),
+}
+
+#[derive(Default, Clone, PartialEq, Eq)]
+pub enum SortType {
+    #[default]
+    Ascending,
+    Descending,
+}
+
+#[derive(Default, Clone, PartialEq, Eq)]
+pub enum Sort {
+    Pid(SortType),
+    Name(SortType),
+    Exe(SortType),
+    User(SortType),
+    Thread(SortType),
+    Cpu(SortType),
+    Memory(SortType),
+    #[default]
+    None,
 }

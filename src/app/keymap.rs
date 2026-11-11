@@ -44,7 +44,7 @@ impl Keys {
             Key::new("Alt + t", "", "Sort by threads"),
             Key::new("Alt + c", "", "Sort by CPU usage"),
             Key::new("Alt + m", "", "Sort by memory usage"),
-            Key::new("r", "", "Reset process sorting"),
+            Key::new("Alt + r", "", "Reset process sorting"),
         ];
 
         Self { general, sorting }

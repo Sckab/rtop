@@ -17,7 +17,7 @@ filterable process list with the ability to terminate processes.
 
 ## Features
 
-- **Live CPU monitoring** — total usage, per-core usage, and a scrolling history graph.
+- **Live CPU monitoring** — CPU brand and average frequency, load average (1, 5, and 15 minutes; Unix only), total and per-core usage, and a scrolling history graph.
 - **Live memory monitoring** — used, available, and free memory in a combined scrolling history graph; total memory is shown as a value. On Windows, available and free are identical, so only free is listed.
 - **Process list** — PID, name (with executable path), user, thread count, CPU %, and memory usage.
 - **Sorting and filtering** — sort by any column with `Alt`-based shortcuts, hold `Shift` for descending, and filter by process name or executable path.
@@ -116,10 +116,11 @@ and `k` on the first process jumps to the last one.
 The screen is divided into three areas:
 
 1. **Header** — `user@host | OS` on the left, current local time on the right.
-2. **CPU and memory panels** — side by side. The CPU panel lists per-core usage,
-   total CPU usage, and a braille history graph. The memory panel shows used,
-   available, and free memory in a combined braille history graph, plus total
-   memory as a value.
+2. **CPU and memory panels** — side by side. The CPU panel shows the CPU brand
+   and average frequency on the left, the load average (1, 5, and 15 minutes) on
+   the right, the per-core usage grid with total CPU usage, and a braille history
+   graph. The memory panel shows used, available, and free memory in a combined
+   braille history graph, plus total memory as a value.
 3. **Process table** — all visible processes with the currently selected one
    highlighted. The panel title shows the selected position and the total number
    of processes, e.g. `Processes (3/214)`, and appends `Search: <query>` while a
@@ -127,6 +128,8 @@ The screen is divided into three areas:
 
 > On Windows, available memory is always equal to free memory, so the Available
 > row and its graph line are omitted; the panel shows Used, Free, and Total.
+>
+> On Windows, the load average is not available and is omitted from the CPU panel.
 
 Additional overlays:
 
@@ -151,7 +154,8 @@ RTOP uses three threads:
 - **UI thread** — renders with [`ratatui`](https://crates.io/crates/ratatui) and
   [`crossterm`](https://crates.io/crates/crossterm), polls terminal events every
   100 ms, and redraws only when something changed.
-- **Stats thread** — samples CPU and memory via [`sysinfo`](https://crates.io/crates/sysinfo)
+- **Stats thread** — samples CPU usage, average frequency, load average, and
+  memory via [`sysinfo`](https://crates.io/crates/sysinfo)
   at `sysinfo::MINIMUM_CPU_UPDATE_INTERVAL`, keeps a bounded history, and renders
   only the samples that fit in the graph, so scrolling starts as soon as the
   visible window fills.

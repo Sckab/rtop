@@ -15,8 +15,11 @@ impl crate::app::App {
         let cpu_memory_layout =
             Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(stats_layout[0]);
 
+        let temperatures_max_width = (stats_layout[1].width / 2).max(1);
+        let temperatures_width = self.temperatures_panel_width().min(temperatures_max_width);
+
         let temperature_processes_layout =
-            Layout::horizontal([Constraint::Percentage(30), Constraint::Fill(1)])
+            Layout::horizontal([Constraint::Length(temperatures_width), Constraint::Fill(1)])
                 .split(stats_layout[1]);
 
         self.render_header(layout[0], buf);

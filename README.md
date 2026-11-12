@@ -10,8 +10,9 @@ _A Rust TOP_
 ![showcase](./screenshots/showcase.png)
 
 RTOP is a fast, terminal-based system monitor written in Rust, inspired by `top`.
-It shows CPU and memory usage with live history graphs, plus a sortable and
-filterable process list with the ability to terminate processes.
+It shows CPU and memory usage with live history graphs, live hardware
+temperatures, plus a sortable and filterable process list with the ability to
+terminate processes.
 
 </div>
 
@@ -19,6 +20,7 @@ filterable process list with the ability to terminate processes.
 
 - **Live CPU monitoring** — CPU brand and average frequency, load average (1, 5, and 15 minutes; Unix only), total and per-core usage, and a scrolling history graph.
 - **Live memory monitoring** — used, available, and free memory in a combined scrolling history graph; total memory is shown as a value. On Windows, available and free are identical, so only free is listed.
+- **Temperature monitoring** — lists hardware sensors with their current temperature and refreshes them every second. Available sensors depend on the platform and drivers; unavailable readings are shown as `Unknown`.
 - **Process list** — PID, name (with executable path), user, thread count, CPU %, and memory usage.
 - **Sorting and filtering** — sort by any column with `Alt`-based shortcuts, hold `Shift` for descending, and filter by process name or executable path.
 - **Kill processes** — with a confirmation prompt, a start-time check to avoid killing a recycled PID, and an error toast if the operation fails.
@@ -113,18 +115,23 @@ and `k` on the first process jumps to the last one.
 
 ## Interface
 
-The screen is divided into three areas:
+The screen is divided into four areas:
 
 1. **Header** — `user@host | OS` on the left, current local time on the right.
-2. **CPU and memory panels** — side by side. The CPU panel shows the CPU brand
-   and average frequency on the left, the load average (1, 5, and 15 minutes) on
-   the right, the per-core usage grid with total CPU usage, and a braille history
-   graph. The memory panel shows used, available, and free memory in a combined
-   braille history graph, plus total memory as a value.
-3. **Process table** — all visible processes with the currently selected one
-   highlighted. The panel title shows the selected position and the total number
-   of processes, e.g. `Processes (3/214)`, and appends `Search: <query>` while a
-   filter is active. The header marks the active sort column with an arrow.
+2. **CPU and memory panels** — side by side at the top. The CPU panel shows the
+   CPU brand and average frequency on the left, the load average (1, 5, and
+   15 minutes) on the right, the per-core usage grid with total CPU usage, and a
+   braille history graph. The memory panel shows used, available, and free memory
+   in a combined braille history graph, plus total memory as a value.
+3. **Temperatures panel** — below the CPU panel. It lists the available hardware
+   sensors with their current temperature in a `Component` / `Temperature` table,
+   sorted by component name. Readings are refreshed every second, and sensors
+   without a readable value are shown as `Unknown`.
+4. **Process table** — to the right of the temperatures panel. It lists all
+   visible processes with the currently selected one highlighted. The panel title
+   shows the selected position and the total number of processes, e.g.
+   `Processes (3/214)`, and appends `Search: <query>` while a filter is active.
+   The header marks the active sort column with an arrow.
 
 > On Windows, available memory is always equal to free memory, so the Available
 > row and its graph line are omitted; the panel shows Used, Free, and Total.
@@ -149,7 +156,7 @@ Additional overlays:
 
 ## How It Works
 
-RTOP uses three threads:
+RTOP uses four threads:
 
 - **UI thread** — renders with [`ratatui`](https://crates.io/crates/ratatui) and
   [`crossterm`](https://crates.io/crates/crossterm), polls terminal events every
@@ -161,6 +168,9 @@ RTOP uses three threads:
   visible window fills.
 - **Process thread** — refreshes the process list every 500 ms and handles kill
   requests sent by the UI.
+- **Temperature thread** — refreshes hardware sensors via
+  [`sysinfo`](https://crates.io/crates/sysinfo) every second and sends the
+  readings to the UI.
 
 The threads communicate through `std::sync::mpsc` channels, so sampling never
 blocks input handling or rendering. Display strings are precomputed once per
@@ -182,6 +192,8 @@ cargo clippy           # Run lints
 - No tree visualization of the processes.
 - Process names and executable paths for processes owned by other users may be
   unavailable on some platforms.
+- Temperature sensors depend on the hardware and drivers; on systems where none
+  are exposed, the Temperatures panel only shows its header.
 - Killing processes is the only write operation performed by the application.
 
 ## License

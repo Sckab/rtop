@@ -9,4 +9,6 @@ pub struct Cpu {
     pub global_usage: f32,
     pub cpus: Vec<CpuStats>,
     pub history: super::history::History<f64>,
+    pub frequency: u64,
+    pub brand: String,
 }

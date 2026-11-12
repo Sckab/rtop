@@ -1,3 +1,4 @@
+use human_units::si::{Frequency, Prefix};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, HorizontalAlignment, Layout, Rect},
@@ -9,6 +10,64 @@ use ratatui::{
 
 use crate::system::cpu::Cpu;
 
+fn render_cpu_table(
+    items: Vec<(String, String)>,
+    spacing: usize,
+    rows: usize,
+    columns: usize,
+    global_usage: f32,
+    cpu_name_width: usize,
+    area: Rect,
+    buf: &mut Buffer,
+) {
+    let table_layout =
+        Layout::vertical([Constraint::Length((rows + 2) as u16), Constraint::Fill(1)]).split(area);
+
+    let table_total_layout =
+        Layout::vertical([Constraint::Length((rows + 1) as u16), Constraint::Fill(1)])
+            .split(table_layout[0]);
+
+    let table_area = table_total_layout[0];
+    let total_area = table_total_layout[1];
+
+    let table_layout = Layout::horizontal((0..columns).map(|_| Constraint::Fill(1)))
+        .spacing(spacing as u16)
+        .split(table_area);
+
+    for i in 0..columns {
+        let mut table_rows = Vec::new();
+
+        for j in 0..rows.min(table_area.height as usize) {
+            let index = i + (j * columns);
+
+            if index >= items.len() {
+                break;
+            }
+
+            let (name, usage) = &items[index];
+
+            table_rows.push(Row::new([
+                Cell::from(name.as_str()).style(Style::default().fg(Color::Green)),
+                Cell::from(usage.as_str()),
+            ]));
+        }
+
+        Table::new(
+            table_rows,
+            [
+                Constraint::Length(cpu_name_width as u16),
+                Constraint::Fill(1),
+            ],
+        )
+        .column_spacing(spacing as u16)
+        .render(table_layout[i], buf);
+    }
+
+    Paragraph::new(
+        Span::raw("Total: ").fg(Color::Green) + Span::raw(format!("{:.0}%", global_usage)),
+    )
+    .render(total_area, buf);
+}
 impl crate::app::App {
     fn render_cpu_graphic(&self, stats: &Cpu, area: Rect, buf: &mut Buffer) {
         const Y_AXIS_WIDTH: u16 = 5; // "100%" (4) + axis column (1)
@@ -81,60 +140,34 @@ impl crate::app::App {
 
         let panel_layout = Layout::new(
             Direction::Vertical,
-            [Constraint::Length((rows + 3) as u16), Constraint::Fill(1)],
+            [
+                Constraint::Length(1),
+                Constraint::Length((rows + 3) as u16),
+                Constraint::Fill(1),
+            ],
         )
         .split(inner_area);
 
-        let table_layout =
-            Layout::vertical([Constraint::Length((rows + 2) as u16), Constraint::Fill(1)])
-                .split(panel_layout[0]);
+        let cpu_brand = Span::raw(format!("{}: ", self.stats.cpu.brand)).fg(Color::Green);
+        let frequency = Span::raw(
+            Frequency::with_si_prefix(self.stats.cpu.frequency, Prefix::Mega)
+                .format_si()
+                .to_string(),
+        );
 
-        let table_total_layout =
-            Layout::vertical([Constraint::Length((rows + 1) as u16), Constraint::Fill(1)])
-                .split(table_layout[0]);
+        Paragraph::new(cpu_brand + frequency).render(panel_layout[0], buf);
 
-        let table_area = table_total_layout[0];
-        let total_area = table_total_layout[1];
+        render_cpu_table(
+            items,
+            spacing,
+            rows,
+            columns,
+            self.stats.cpu.global_usage,
+            cpu_name_width,
+            panel_layout[1],
+            buf,
+        );
 
-        let table_layout = Layout::horizontal((0..columns).map(|_| Constraint::Fill(1)))
-            .spacing(spacing as u16)
-            .split(table_area);
-
-        for i in 0..columns {
-            let mut table_rows = Vec::new();
-
-            for j in 0..rows.min(table_area.height as usize) {
-                let index = i + (j * columns);
-
-                if index >= items.len() {
-                    break;
-                }
-
-                let (name, usage) = &items[index];
-
-                table_rows.push(Row::new([
-                    Cell::from(name.as_str()).style(Style::default().fg(Color::Green)),
-                    Cell::from(usage.as_str()),
-                ]));
-            }
-
-            Table::new(
-                table_rows,
-                [
-                    Constraint::Length(cpu_name_width as u16),
-                    Constraint::Fill(1),
-                ],
-            )
-            .column_spacing(spacing as u16)
-            .render(table_layout[i], buf);
-        }
-
-        Paragraph::new(
-            Span::raw("Total: ").fg(Color::Green)
-                + Span::raw(format!("{:.0}%", self.stats.cpu.global_usage)),
-        )
-        .render(total_area, buf);
-
-        self.render_cpu_graphic(cpu_stats, panel_layout[1], buf);
+        self.render_cpu_graphic(cpu_stats, panel_layout[2], buf);
     }
 }

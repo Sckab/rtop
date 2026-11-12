@@ -32,12 +32,18 @@ pub fn create_stats_thread(
 
             let mut cpus: Vec<cpu::CpuStats> = vec![];
 
+            let mut frequency = 0;
+
             for (index, cpu) in system.cpus().iter().enumerate() {
                 cpus.push(cpu::CpuStats {
                     number: index + 1,
                     usage: cpu.usage(),
                 });
+
+                frequency += cpu.frequency();
             }
+
+            frequency = frequency / cpus.len() as u64;
 
             let used_memory = system.used_memory();
             let available_memory = system.available_memory();
@@ -72,6 +78,8 @@ pub fn create_stats_thread(
                     global_usage: system.global_cpu_usage(),
                     cpus,
                     history: cpu_history.clone(),
+                    frequency,
+                    brand: system.cpus()[0].brand().to_string(),
                 },
             };
 

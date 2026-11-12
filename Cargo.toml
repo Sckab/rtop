@@ -8,9 +8,10 @@ description = "A Rust TOP"
 anyhow = "1.0.104"
 clap = { version = "4.6.7", features = ["derive"] }
 crossterm = "0.29.0"
+human-units = { version = "0.6.0", features = ["si-units"] }
 humansize = "2.1.3"
 ratatui = "0.30.2"
 ratatui-textarea = "0.9.4"
 sysinfo = "0.40.1"
-time = { version = "0.3.55", features = ["formatting"] }
+time = "0.3.55"
 whoami = "2.1.3"

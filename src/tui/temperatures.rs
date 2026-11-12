@@ -22,7 +22,7 @@ impl crate::app::App {
                 maximum_width = maximum_width.max(t.sensor.len());
 
                 let temperature = match t.temperature {
-                    Some(temp) => format!("{temp:.2}C°"),
+                    Some(temp) => format!("{temp:.2}°C"),
                     None => "Unknown".to_string(),
                 };
 

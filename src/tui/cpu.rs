@@ -68,6 +68,7 @@ fn render_cpu_table(
     )
     .render(total_area, buf);
 }
+
 impl crate::app::App {
     fn render_cpu_graphic(&self, stats: &Cpu, area: Rect, buf: &mut Buffer) {
         const Y_AXIS_WIDTH: u16 = 5; // "100%" (4) + axis column (1)

@@ -4,7 +4,8 @@ use std::io;
 
 use crate::system::{
     SystemInfo, SystemStats,
-    process::{KillRequest, KillResponse, ProcessesState},
+    process::{KillRequest, KillResponse, Process, ProcessesState},
+    temperature::Temperature,
     workers,
 };
 
@@ -20,6 +21,7 @@ pub struct App {
     pub toast: Option<Toast>,
     pub system_info: SystemInfo,
     pub stats: SystemStats,
+    pub temperatures: Vec<Temperature>,
     pub tables: TableStates, // we still leave this, it could be useful in the future
     pub keys: keymap::Keys,
     pub processes_state: ProcessesState,
@@ -43,6 +45,7 @@ impl App {
             tables: TableStates::default(),
             keys: keymap::Keys::new(),
             processes_state: ProcessesState::default(),
+            temperatures: vec![],
         }
     }
 
@@ -51,6 +54,7 @@ impl App {
         terminal: &mut DefaultTerminal,
         stats_system: sysinfo::System,
         process_system: sysinfo::System,
+        components: sysinfo::Components,
         users: sysinfo::Users,
     ) -> io::Result<()> {
         let (tx_kill, rx_kill) = std::sync::mpsc::channel::<KillRequest>();
@@ -58,9 +62,10 @@ impl App {
 
         let _ = tx_width.send((terminal.size()?.width / 2) as usize);
 
-        let rx_stats = workers::create_stats_thread(rx_width, stats_system);
+        let rx_stats = workers::stats::create_worker(rx_width, stats_system);
         let (rx_processes, rx_msg_kill) =
-            workers::create_process_thread(rx_kill, process_system, users);
+            workers::processes::create_worker(rx_kill, process_system, users);
+        let rx_temperatures = workers::temperatures::create_worker(components);
 
         let mut dirty = true;
 
@@ -98,45 +103,16 @@ impl App {
             }
 
             while let Ok(mut processes) = rx_processes.try_recv() {
-                for process in &mut processes {
-                    crate::tui::prepare_display(process, &self.system_info.size_formatter);
-                }
-
-                let selected_pid = self
-                    .tables
-                    .process_table
-                    .selected()
-                    .and_then(|index| self.processes_state.processes.get(index))
-                    .map(|process| process.pid);
+                let selected = self.update_processes(&mut processes);
 
                 self.processes_state.processes = processes;
-
-                let selected = selected_pid
-                    .and_then(|pid| {
-                        self.processes_state
-                            .processes
-                            .iter()
-                            .position(|process| process.pid == pid)
-                    })
-                    .or_else(|| {
-                        if self.processes_state.processes.is_empty() {
-                            None
-                        } else {
-                            self.tables
-                                .process_table
-                                .selected()
-                                .map(|index| index.min(self.processes_state.processes.len() - 1))
-                        }
-                    });
-
                 self.tables.process_table.select(selected);
 
-                if self.tables.process_table.selected().is_none()
-                    && !self.processes_state.processes.is_empty()
-                {
-                    self.tables.process_table.select_first();
-                }
+                dirty = true;
+            }
 
+            while let Ok(temperatures) = rx_temperatures.try_recv() {
+                self.temperatures = temperatures;
                 dirty = true;
             }
 
@@ -166,5 +142,34 @@ impl App {
         } else {
             Ok(false)
         }
+    }
+
+    fn update_processes(&self, processes: &mut [Process]) -> Option<usize> {
+        for process in processes.iter_mut() {
+            crate::tui::prepare_display(process, &self.system_info.size_formatter);
+        }
+
+        let selected_pid = self
+            .tables
+            .process_table
+            .selected()
+            .and_then(|index| self.processes_state.processes.get(index))
+            .map(|process| process.pid);
+
+        selected_pid
+            .and_then(|pid| processes.iter().position(|process| process.pid == pid))
+            .or_else(|| {
+                if processes.is_empty() {
+                    None
+                } else {
+                    Some(
+                        self.tables
+                            .process_table
+                            .selected()
+                            .unwrap_or(0)
+                            .min(processes.len() - 1),
+                    )
+                }
+            })
     }
 }

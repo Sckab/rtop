@@ -13,7 +13,11 @@ fn main() -> anyhow::Result<()> {
 
     let users = sysinfo::Users::new_with_refreshed_list()?;
 
-    ratatui::run(|terminal| app::App::new().run(terminal, stats_system, process_system, users))?;
+    let components = sysinfo::Components::new_with_refreshed_list()?;
+
+    ratatui::run(|terminal| {
+        app::App::new().run(terminal, stats_system, process_system, components, users)
+    })?;
 
     Ok(())
 }

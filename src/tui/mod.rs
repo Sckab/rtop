@@ -6,6 +6,7 @@ mod memory;
 mod popups;
 mod processes;
 mod render;
+mod temperatures;
 mod widgets;
 
 pub use processes::prepare_display;

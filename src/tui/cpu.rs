@@ -1,10 +1,10 @@
 use human_units::si::{Frequency, Prefix};
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Direction, HorizontalAlignment, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, HorizontalAlignment, Layout, Rect},
     style::{Color, Style, Stylize},
     symbols::Marker,
-    text::Span,
+    text::{Line, Span},
     widgets::{Axis, Cell, Chart, Dataset, GraphType, Paragraph, Row, Table, Widget},
 };
 
@@ -106,7 +106,7 @@ impl crate::app::App {
     pub fn render_cpu_usage(&self, area: Rect, buf: &mut Buffer) {
         let cpu_stats = &self.stats.cpu;
 
-        let inner_area = super::widgets::get_bordered_block(" CPU Usage ", false, false, area, buf);
+        let inner_area = super::widgets::get_bordered_block(" CPU ", false, false, area, buf);
 
         let mut items: Vec<(String, String)> = Vec::new();
 
@@ -155,7 +155,22 @@ impl crate::app::App {
                 .to_string(),
         );
 
-        Paragraph::new(cpu_brand + frequency).render(panel_layout[0], buf);
+        // sysinfo doesn't support the load average for windows
+        #[cfg(not(windows))]
+        let load_average = Line::from(vec![
+            Span::raw("Load Average:  ").fg(Color::Green),
+            Span::raw(self.stats.load_average.display()),
+        ]);
+
+        let [left, right] =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).areas(panel_layout[0]);
+
+        Paragraph::new(cpu_brand + frequency).render(left, buf);
+
+        #[cfg(not(windows))]
+        Paragraph::new(load_average)
+            .alignment(Alignment::Right)
+            .render(right, buf);
 
         render_cpu_table(
             items,

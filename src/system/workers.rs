@@ -3,7 +3,7 @@ use std::sync::mpsc::Receiver;
 
 use crate::system::process::{KillRequest, KillResponse};
 
-use super::{SystemStats, cpu, history, memory, process::Process};
+use super::{LoadAverage, SystemStats, cpu, history, memory, process::Process};
 
 pub fn create_stats_thread(
     rx_width: Receiver<usize>,
@@ -25,6 +25,11 @@ pub fn create_stats_thread(
         loop {
             system.refresh_memory();
             system.refresh_cpu_all();
+
+            let load_average = match sysinfo::System::load_average() {
+                Ok(l) => l,
+                Err(_) => sysinfo::LoadAvg::default(),
+            };
 
             while let Ok(w) = rx_width.try_recv() {
                 width = w;
@@ -80,6 +85,11 @@ pub fn create_stats_thread(
                     history: cpu_history.clone(),
                     frequency,
                     brand: system.cpus()[0].brand().to_string(),
+                },
+                load_average: LoadAverage {
+                    one: load_average.one,
+                    five: load_average.five,
+                    fifteen: load_average.fifteen,
                 },
             };
 

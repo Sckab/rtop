@@ -12,6 +12,7 @@ pub struct SystemStats {
     pub memory_free: memory::Memory,
     pub memory_total: memory::Memory,
     pub cpu: cpu::Cpu,
+    pub load_average: LoadAverage,
 }
 
 pub struct SystemInfo {
@@ -19,4 +20,17 @@ pub struct SystemInfo {
     pub os_name: String,
     pub user_name: String,
     pub size_formatter: Box<dyn Fn(u64) -> String>,
+}
+
+#[derive(Default, Debug)]
+pub struct LoadAverage {
+    pub one: f64,
+    pub five: f64,
+    pub fifteen: f64,
+}
+
+impl LoadAverage {
+    pub fn display(&self) -> String {
+        format!("{:.2}  {:.2}  {:.2}", self.one, self.five, self.fifteen)
+    }
 }

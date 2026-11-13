@@ -1,14 +1,18 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Rect},
-    style::{Color, Style, Stylize},
+    style::{Color, Stylize},
     text::Span,
     widgets::{Cell, Row, StatefulWidget, Table},
 };
 
 use crate::{
-    app::state::Mode,
-    system::process::{Process, Sort, SortType},
+    app::state::{Mode, SelectedPanel},
+    system::{
+        process::Process,
+        sorting::{ProcessSort, ProcessSortType},
+    },
+    tui::widgets::get_selected_style,
 };
 
 pub fn prepare_display(process: &mut Process, size_formatter: &dyn Fn(u64) -> String) {
@@ -23,68 +27,6 @@ pub fn prepare_display(process: &mut Process, size_formatter: &dyn Fn(u64) -> St
     process.threads_display = process.threads.to_string();
     process.cpu_display = format!("{:.1}%", process.cpu_usage);
     process.memory_display = size_formatter(process.memory);
-}
-
-fn sort_processes(processes: &mut Vec<&Process>, sort: &Sort) {
-    match sort {
-        Sort::Pid(sort_type) => match sort_type {
-            SortType::Ascending => {
-                processes.sort_by_key(|p| p.pid);
-            }
-            SortType::Descending => {
-                processes.sort_by_key(|p| std::cmp::Reverse(p.pid));
-            }
-        },
-        Sort::Name(sort_type) => match sort_type {
-            SortType::Ascending => {
-                processes.sort_by_key(|p| p.name.clone());
-            }
-            SortType::Descending => {
-                processes.sort_by_key(|p| std::cmp::Reverse(p.name.clone()));
-            }
-        },
-        Sort::Exe(sort_type) => match sort_type {
-            SortType::Ascending => {
-                processes.sort_by_key(|p| p.exe.clone());
-            }
-            SortType::Descending => {
-                processes.sort_by_key(|p| std::cmp::Reverse(p.exe.clone()));
-            }
-        },
-        Sort::User(sort_type) => match sort_type {
-            SortType::Ascending => {
-                processes.sort_by_key(|p| p.user.clone());
-            }
-            SortType::Descending => {
-                processes.sort_by_key(|p| std::cmp::Reverse(p.user.clone()));
-            }
-        },
-        Sort::Thread(sort_type) => match sort_type {
-            SortType::Ascending => {
-                processes.sort_by_key(|p| p.threads);
-            }
-            SortType::Descending => {
-                processes.sort_by_key(|p| std::cmp::Reverse(p.threads));
-            }
-        },
-        Sort::Cpu(sort_type) => match sort_type {
-            SortType::Ascending => {
-                processes.sort_by(|a, b| a.cpu_usage.total_cmp(&b.cpu_usage));
-            }
-            SortType::Descending => {
-                processes.sort_by(|a, b| b.cpu_usage.total_cmp(&a.cpu_usage));
-            }
-        },
-        Sort::Memory(sort_type) => match sort_type {
-            SortType::Ascending => {
-                processes.sort_by_key(|p| p.memory);
-            }
-            SortType::Descending => {
-                processes.sort_by_key(|p| std::cmp::Reverse(p.memory));
-            }
-        },
-        Sort::None => {}
-    }
 }
 
 impl crate::app::App {
@@ -107,23 +49,21 @@ impl crate::app::App {
     pub fn filtered_and_sorted_processes<'a>(
         query: Option<&str>,
         processes: &'a [Process],
-        sort: &Sort,
+        sort: &ProcessSort,
     ) -> Vec<&'a Process> {
         let mut filtered = Self::filtered_processes(query, processes);
 
-        sort_processes(&mut filtered, sort);
+        sort.sort_processes(&mut filtered);
 
         filtered
     }
 
     pub fn render_processes(&mut self, area: Rect, buf: &mut Buffer) {
         let query = self.current_query();
+        let sort = &self.processes_state.sort;
 
-        let filtered_processes = Self::filtered_and_sorted_processes(
-            query,
-            &self.processes_state.processes,
-            &self.processes_state.sort,
-        );
+        let filtered_processes =
+            Self::filtered_and_sorted_processes(query, &self.processes_state.processes, sort);
 
         let selected_index = self.tables.process_table.selected();
 
@@ -138,7 +78,7 @@ impl crate::app::App {
 
         let title = if let Some(query) = query
             && !query.is_empty()
-            && !matches!(self.mode, Mode::Search { .. })
+            && !matches!(self.state.mode, Mode::Search { .. })
         {
             format!("{title} Search: {query}")
         } else {
@@ -148,46 +88,14 @@ impl crate::app::App {
         let area =
             super::widgets::get_bordered_block(format!(" {title} "), false, false, area, buf);
 
-        let mut table_columns = [
-            "PID".to_string(),
-            "Name".to_string(),
-            "User".to_string(),
-            "Threads".to_string(),
-            "CPU %".to_string(),
-            "Memory".to_string(),
+        let table_columns = [
+            format!("PID{}", sort.get_arrow(ProcessSortType::Pid)),
+            format!("Name{}", sort.get_arrow(ProcessSortType::Name)),
+            format!("User{}", sort.get_arrow(ProcessSortType::User)),
+            format!("Threads{}", sort.get_arrow(ProcessSortType::Thread)),
+            format!("CPU %{}", sort.get_arrow(ProcessSortType::Cpu)),
+            format!("Memory{}", sort.get_arrow(ProcessSortType::Memory)),
         ];
-
-        match &self.processes_state.sort {
-            Sort::Pid(sort_type) => table_columns[0].push_str(match sort_type {
-                SortType::Ascending => " ",
-                SortType::Descending => " ",
-            }),
-            Sort::Name(sort_type) => table_columns[1].push_str(match sort_type {
-                SortType::Ascending => " ",
-                SortType::Descending => " ",
-            }),
-            Sort::Exe(sort_type) => table_columns[1].push_str(match sort_type {
-                SortType::Ascending => "  (exe)",
-                SortType::Descending => "  (exe)",
-            }),
-            Sort::User(sort_type) => table_columns[2].push_str(match sort_type {
-                SortType::Ascending => " ",
-                SortType::Descending => " ",
-            }),
-            Sort::Thread(sort_type) => table_columns[3].push_str(match sort_type {
-                SortType::Ascending => " ",
-                SortType::Descending => " ",
-            }),
-            Sort::Cpu(sort_type) => table_columns[4].push_str(match sort_type {
-                SortType::Ascending => " ",
-                SortType::Descending => " ",
-            }),
-            Sort::Memory(sort_type) => table_columns[5].push_str(match sort_type {
-                SortType::Ascending => " ",
-                SortType::Descending => " ",
-            }),
-            Sort::None => {}
-        }
 
         let header = Row::new([
             Cell::new(Span::raw(table_columns[0].clone()).into_right_aligned_line()),
@@ -238,10 +146,7 @@ impl crate::app::App {
                     Constraint::Length(user_width as u16),
                     Constraint::Length(threads_width as u16),
                     Constraint::Length(
-                        if matches!(
-                            self.processes_state.sort,
-                            Sort::Cpu(SortType::Ascending) | Sort::Cpu(SortType::Descending)
-                        ) {
+                        if matches!(self.processes_state.sort.sort_type, ProcessSortType::Cpu) {
                             7
                         } else {
                             6
@@ -252,7 +157,10 @@ impl crate::app::App {
             )
             .column_spacing(2)
             .header(header)
-            .row_highlight_style(Style::new().bg(Color::Green).fg(Color::Black)),
+            .row_highlight_style(get_selected_style(matches!(
+                &self.state.selected_panel,
+                SelectedPanel::Processes
+            ))),
             area,
             buf,
             &mut self.tables.process_table,

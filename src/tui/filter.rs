@@ -8,7 +8,7 @@ use crate::app::state::Mode;
 
 impl crate::app::App {
     pub fn current_query(&self) -> Option<&str> {
-        match &self.mode {
+        match &self.state.mode {
             Mode::Search { text_area } => Some(text_area.lines()[0].as_str()),
             _ => self.processes_state.process_query.as_deref(),
         }

@@ -19,6 +19,19 @@ pub enum Mode {
     },
 }
 
+#[derive(Default)]
+pub enum SelectedPanel {
+    #[default]
+    Processes,
+    Termperature,
+}
+
+#[derive(Default)]
+pub struct State {
+    pub selected_panel: SelectedPanel,
+    pub mode: Mode,
+}
+
 pub struct Toast {
     pub message: String,
     pub expires_at: Instant,
@@ -40,4 +53,5 @@ impl Toast {
 #[derive(Default)]
 pub struct TableStates {
     pub process_table: TableState,
+    pub temperature_table: TableState,
 }

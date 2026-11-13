@@ -2,6 +2,7 @@ pub mod cpu;
 pub mod history;
 pub mod memory;
 pub mod process;
+pub mod sorting;
 pub mod temperature;
 pub mod workers;
 

@@ -39,3 +39,11 @@ where
 
     inner_area
 }
+
+pub fn get_selected_style(selected: bool) -> Style {
+    if selected {
+        Style::new().fg(Color::Black).bg(Color::Green)
+    } else {
+        Style::new().fg(Color::Green).bg(Color::Black)
+    }
+}

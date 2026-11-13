@@ -29,7 +29,7 @@ impl crate::app::App {
         self.render_processes(temperature_processes_layout[1], buf);
         self.render_temperatures(temperature_processes_layout[0], buf);
 
-        match &self.mode {
+        match &self.state.mode {
             Mode::Help => super::help::render_help_panel(self.keys.clone(), area, buf),
             Mode::ConfirmKill { request } => {
                 super::popups::render_kill_confirmation(&request.name, &request.pid, area, buf)

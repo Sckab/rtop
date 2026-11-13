@@ -2,29 +2,32 @@ use crossterm::event::{self, Event, KeyEventKind};
 use ratatui::DefaultTerminal;
 use std::io;
 
-use crate::system::{
-    SystemInfo, SystemStats,
-    process::{KillRequest, KillResponse, Process, ProcessesState},
-    temperature::Temperature,
-    workers,
+use crate::{
+    app::state::State,
+    system::{
+        SystemInfo, SystemStats,
+        process::{KillRequest, KillResponse, Process, ProcessesState},
+        temperature::{Temperature, TemperatureState},
+        workers,
+    },
 };
 
 mod input;
 pub mod keymap;
 pub mod state;
 
-use state::{Mode, TableStates, Toast};
+use state::{TableStates, Toast};
 
 pub struct App {
     pub quit: bool,
-    pub mode: Mode,
+    pub state: State,
     pub toast: Option<Toast>,
     pub system_info: SystemInfo,
     pub stats: SystemStats,
-    pub temperatures: Vec<Temperature>,
     pub tables: TableStates, // we still leave this, it could be useful in the future
     pub keys: keymap::Keys,
     pub processes_state: ProcessesState,
+    pub temperature_state: TemperatureState,
 }
 
 impl App {
@@ -38,14 +41,14 @@ impl App {
 
         Self {
             quit: false,
-            mode: Mode::Normal,
+            state: State::default(),
             toast: None,
             system_info,
             stats: SystemStats::default(),
             tables: TableStates::default(),
             keys: keymap::Keys::new(),
             processes_state: ProcessesState::default(),
-            temperatures: vec![],
+            temperature_state: TemperatureState::default(),
         }
     }
 
@@ -111,8 +114,12 @@ impl App {
                 dirty = true;
             }
 
-            while let Ok(temperatures) = rx_temperatures.try_recv() {
-                self.temperatures = temperatures;
+            while let Ok(mut temperatures) = rx_temperatures.try_recv() {
+                let selected = self.update_temperatures(&mut temperatures);
+
+                self.temperature_state.temperatures = temperatures;
+                self.tables.temperature_table.select(selected);
+
                 dirty = true;
             }
 
@@ -142,6 +149,61 @@ impl App {
         } else {
             Ok(false)
         }
+    }
+
+    fn resort_temperatures(&mut self) {
+        let selected_sensor = self
+            .tables
+            .temperature_table
+            .selected()
+            .and_then(|index| self.temperature_state.temperatures.get(index))
+            .map(|temperature| temperature.sensor.clone());
+
+        self.temperature_state
+            .sort
+            .sort_temperatures(&mut self.temperature_state.temperatures);
+
+        let selected = selected_sensor
+            .and_then(|sensor| {
+                self.temperature_state
+                    .temperatures
+                    .iter()
+                    .position(|temperature| temperature.sensor == sensor)
+            })
+            .or_else(|| (!self.temperature_state.temperatures.is_empty()).then_some(0));
+
+        self.tables.temperature_table.select(selected);
+    }
+
+    fn update_temperatures(&self, temepratures: &mut [Temperature]) -> Option<usize> {
+        self.temperature_state.sort.sort_temperatures(temepratures);
+
+        let selected_pid = self
+            .tables
+            .temperature_table
+            .selected()
+            .and_then(|index| self.temperature_state.temperatures.get(index))
+            .map(|temperature| temperature.sensor.as_str());
+
+        selected_pid
+            .and_then(|temperature| {
+                temepratures
+                    .iter()
+                    .position(|temp| temp.sensor == temperature)
+            })
+            .or_else(|| {
+                if temepratures.is_empty() {
+                    None
+                } else {
+                    Some(
+                        self.tables
+                            .temperature_table
+                            .selected()
+                            .unwrap_or(0)
+                            .min(temepratures.len() - 1),
+                    )
+                }
+            })
     }
 
     fn update_processes(&self, processes: &mut [Process]) -> Option<usize> {

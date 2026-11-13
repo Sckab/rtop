@@ -2,9 +2,9 @@ use crate::system::{sorting::SortDirection, temperature::Temperature};
 
 #[derive(Default, Clone, PartialEq, Eq)]
 pub enum TemperatureSortType {
+    #[default]
     Sensor,
     Temperature,
-    #[default]
     None,
 }
 

@@ -22,19 +22,12 @@ impl crate::app::App {
         let now =
             time::OffsetDateTime::now_local().unwrap_or_else(|_| time::OffsetDateTime::now_utc());
 
-        let hours = Span::raw(format!("{:02}", now.hour()));
-        let minutes = Span::raw(format!("{:02}", now.minute()));
-        let seconds = Span::raw(format!("{:02}", now.second()));
-
-        let clock_separator = Span::raw(":").fg(Color::Green);
-
-        Paragraph::new(Line::from(vec![
-            hours,
-            clock_separator.clone(),
-            minutes,
-            clock_separator,
-            seconds,
-        ]))
+        Paragraph::new(format!(
+            "{:02}:{:02}:{:02}",
+            now.hour(),
+            now.minute(),
+            now.second()
+        ))
         .render(layout[1], buf);
     }
 }

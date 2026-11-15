@@ -81,7 +81,8 @@ pub fn render_help_panel(keys: keymap::Keys, area: Rect, buf: &mut Buffer) {
     const COLUMN_SPACING: u16 = 2;
 
     let general_widths = get_maximum_widths(&keys.general);
-    let sorting_widths = get_maximum_widths(&keys.sorting);
+    let sorting_processes_widths = get_maximum_widths(&keys.sorting_processes);
+    let sorting_temperatures_widths = get_maximum_widths(&keys.sorting_temperatures);
 
     let general_width =
         general_widths.0 + general_widths.1 + general_widths.2 + (2 * COLUMN_SPACING);
@@ -89,10 +90,20 @@ pub fn render_help_panel(keys: keymap::Keys, area: Rect, buf: &mut Buffer) {
     let sorting_title = "Sorting (ascending, Shift for Descending)";
     let sorting_width = sorting_title.cell_width();
 
-    let sorting_width = sorting_width.max(sorting_widths.0 + sorting_widths.2 + COLUMN_SPACING);
+    let sorting_width = sorting_width
+        .max(sorting_processes_widths.0 + sorting_processes_widths.2 + COLUMN_SPACING)
+        .max(sorting_temperatures_widths.0 + sorting_temperatures_widths.2 + COLUMN_SPACING);
 
     let width = general_width.max(sorting_width) + 2;
-    let height = (keys.len() + 3) as u16;
+
+    let general_height = keys.general.len() as u16 + 1; // include the table header
+    let inner_height = general_height
+        + 1 // sorting title
+        + 1
+        + keys.sorting_processes.len() as u16
+        + 1
+        + keys.sorting_temperatures.len() as u16;
+    let height = inner_height + 2; // borders
 
     let area_centered = area.centered(Constraint::Length(width), Constraint::Length(height));
 
@@ -101,15 +112,28 @@ pub fn render_help_panel(keys: keymap::Keys, area: Rect, buf: &mut Buffer) {
     let popup_area = get_bordered_block(" Help ", false, true, area_centered, buf);
 
     let layout = Layout::vertical([
-        Constraint::Length(keys.general.len() as u16),
+        Constraint::Length(general_height),
         Constraint::Length(1),
-        Constraint::Length(keys.sorting.len() as u16),
+        Constraint::Length(1),
+        Constraint::Length(keys.sorting_processes.len() as u16),
+        Constraint::Length(1),
+        Constraint::Length(keys.sorting_temperatures.len() as u16),
     ])
     .split(popup_area);
 
     general_table(keys.general, COLUMN_SPACING, layout[0], buf);
+
     Paragraph::new(sorting_title)
         .style(Style::default().fg(Color::Green))
         .render(layout[1], buf);
-    sorting_table(keys.sorting, COLUMN_SPACING, layout[2], buf);
+
+    Paragraph::new("Processes:")
+        .style(Style::default().fg(Color::Green))
+        .render(layout[2], buf);
+    sorting_table(keys.sorting_processes, COLUMN_SPACING, layout[3], buf);
+
+    Paragraph::new("Temperatures:")
+        .style(Style::default().fg(Color::Green))
+        .render(layout[4], buf);
+    sorting_table(keys.sorting_temperatures, COLUMN_SPACING, layout[5], buf);
 }

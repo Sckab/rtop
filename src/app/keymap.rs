@@ -18,7 +18,8 @@ impl Key {
 #[derive(Clone)]
 pub struct Keys {
     pub general: Vec<Key>,
-    pub sorting: Vec<Key>,
+    pub sorting_processes: Vec<Key>,
+    pub sorting_temperatures: Vec<Key>,
 }
 
 impl Keys {
@@ -34,9 +35,10 @@ impl Keys {
             Key::new("/", "", "Filter processes"),
             Key::new("Esc", "", "Cancel the filter input"),
             Key::new("Enter", "", "Confirm the filter"),
+            Key::new("Alt + r", "", "Reset sorting"),
         ];
 
-        let sorting = vec![
+        let sorting_processes = vec![
             Key::new("Alt + p", "", "Sort by PID"),
             Key::new("Alt + n", "", "Sort by name"),
             Key::new("Alt + e", "", "Sort by executable"),
@@ -44,13 +46,17 @@ impl Keys {
             Key::new("Alt + t", "", "Sort by threads"),
             Key::new("Alt + c", "", "Sort by CPU usage"),
             Key::new("Alt + m", "", "Sort by memory usage"),
-            Key::new("Alt + r", "", "Reset process sorting"),
         ];
 
-        Self { general, sorting }
-    }
+        let sorting_temperatures = vec![
+            Key::new("Alt + s", "", "Sort by sensor"),
+            Key::new("Alt + t", "", "Sort by temperature"),
+        ];
 
-    pub fn len(&self) -> usize {
-        self.general.len() + self.sorting.len()
+        Self {
+            general,
+            sorting_processes,
+            sorting_temperatures,
+        }
     }
 }

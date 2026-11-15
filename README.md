@@ -11,8 +11,8 @@ _A Rust TOP_
 
 RTOP is a fast, terminal-based system monitor written in Rust, inspired by `top`.
 It shows CPU and memory usage with live history graphs, live hardware
-temperatures, plus a sortable and filterable process list with the ability to
-terminate processes.
+temperatures, and sortable process and temperature tables; the process list can
+be filtered and processes can be terminated.
 
 </div>
 
@@ -20,11 +20,11 @@ terminate processes.
 
 - **Live CPU monitoring** — CPU brand and average frequency, load average (1, 5, and 15 minutes; Unix only), total and per-core usage, and a scrolling history graph.
 - **Live memory monitoring** — used, available, and free memory in a combined scrolling history graph; total memory is shown as a value. On Windows, available and free are identical, so only free is listed.
-- **Temperature monitoring** — lists hardware sensors with their current temperature and refreshes them every second. Available sensors depend on the platform and drivers; unavailable readings are shown as `Unknown`.
+- **Temperature monitoring** — lists hardware sensors with their current temperature in a selectable, sortable table, refreshed every second. The selected sensor is preserved across refreshes and sorting. Available sensors depend on the platform and drivers; unavailable readings are shown as `Unknown`.
 - **Process list** — PID, name (with executable path), user, thread count, CPU %, and memory usage.
-- **Sorting and filtering** — sort by any column with `Alt`-based shortcuts, hold `Shift` for descending, and filter by process name or executable path.
+- **Sorting and filtering** — sort the process and temperature tables with `Alt`-based shortcuts, hold `Shift` for descending, and filter processes by name or executable path. The active sort column is marked with an arrow.
 - **Kill processes** — with a confirmation prompt, a start-time check to avoid killing a recycled PID, and an error toast if the operation fails.
-- **Vim-style keybindings** — `j`/`k`/`g`/`G` for navigation, `h`/`?` for help, `q` to quit, plus `Alt`-based sorting.
+- **Vim-style keybindings** — `j`/`k`/`g`/`G` for navigation in the focused panel, `H`/`L` to switch panels, `h`/`?` for help, `q` to quit, plus `Alt`-based sorting.
 - **Responsive layout** — per-core CPU stats are laid out in multiple columns based on terminal width.
 - **Non-blocking sampling** — system data is collected on background threads, so the UI stays responsive.
 
@@ -33,8 +33,6 @@ terminate processes.
 - Rust **1.95+** (the project uses the 2024 edition).
 - Linux, macOS, Windows, or another platform supported by [`sysinfo`](https://crates.io/crates/sysinfo).
 - A terminal with UTF-8 and color support.
-- A [Nerd Font](https://www.nerdfonts.com/) is recommended to render the sorting
-  arrows in the process header; without one they may appear as missing glyphs.
 
 ## Installation
 
@@ -71,20 +69,27 @@ or `Esc`.
 
 ### Keybindings
 
-| Key        | Action                            |
-| ---------- | --------------------------------- |
-| `h`, `?`   | Show / hide the help panel        |
-| `q`, `Esc` | Quit (or close the current panel) |
-| `k`, `↑`   | Select the previous process       |
-| `j`, `↓`   | Select the next process           |
-| `g`, `←`   | Select the first process          |
-| `G`, `→`   | Select the last process           |
-| `K`        | Kill the selected process         |
-| `/`        | Filter processes                  |
-| `Esc`      | Cancel the filter input           |
-| `Enter`    | Confirm the filter                |
+| Key        | Action                                       |
+| ---------- | -------------------------------------------- |
+| `H`        | Focus the Temperatures panel (left)          |
+| `L`        | Focus the Processes panel (right)            |
+| `h`, `?`   | Show / hide the help panel                   |
+| `q`, `Esc` | Quit (or close the current panel)            |
+| `k`, `↑`   | Select the previous row in the focused panel |
+| `j`, `↓`   | Select the next row in the focused panel     |
+| `g`, `←`   | Select the first row in the focused panel    |
+| `G`, `→`   | Select the last row in the focused panel     |
+| `K`        | Kill the selected process                    |
+| `/`        | Filter processes                             |
+| `Esc`      | Cancel the filter input                      |
+| `Enter`    | Confirm the filter                           |
 
-Sorting shortcuts:
+Navigation wraps within the focused panel: pressing `j` on the last row jumps to
+the first one, and `k` on the first row jumps to the last one. `K` and `/`
+always act on the process list, even while the Temperatures panel is focused;
+filtering is available for processes only.
+
+Process sorting (while the Processes panel is focused):
 
 | Key       | Action                  |
 | --------- | ----------------------- |
@@ -95,13 +100,25 @@ Sorting shortcuts:
 | `Alt + t` | Sort by thread count    |
 | `Alt + c` | Sort by CPU usage       |
 | `Alt + m` | Sort by memory usage    |
-| `Alt + r` | Reset process sorting   |
+
+Temperature sorting (while the Temperatures panel is focused):
+
+| Key       | Action              |
+| --------- | ------------------- |
+| `Alt + s` | Sort by sensor      |
+| `Alt + t` | Sort by temperature |
 
 Selecting a column sorts in ascending order by default; hold `Shift` while
 pressing the shortcut (e.g. `Shift + Alt + c`) to sort in descending order.
-Sorting is applied to the filtered process list, and the active column is marked
-with an arrow in the process table header (`(exe)` is shown when sorting by
-executable path).
+`Alt + t` is contextual: it sorts processes by thread count and temperatures by
+temperature value. `Alt + r` resets sorting for the focused panel.
+
+Process sorting is applied to the filtered process list, and the active column
+is marked with an arrow in the process table header (`(exe)` is shown when
+sorting by executable path). Temperature sorting is applied immediately and is
+marked with an arrow in the temperature table header. The selected sensor stays
+selected across refreshes and sorting, and temperatures are sorted by sensor name
+in ascending order by default.
 
 Inside the kill confirmation dialog:
 
@@ -109,9 +126,6 @@ Inside the kill confirmation dialog:
 | -------------------- | ---------------- |
 | `y`, `Enter`         | Confirm the kill |
 | `n`, `N`, `q`, `Esc` | Cancel           |
-
-Navigation wraps around: pressing `j` on the last process jumps to the first one,
-and `k` on the first process jumps to the last one.
 
 ## Interface
 
@@ -124,14 +138,21 @@ The screen is divided into four areas:
    braille history graph. The memory panel shows used, available, and free memory
    in a combined braille history graph, plus total memory as a value.
 3. **Temperatures panel** — below the CPU panel. It lists the available hardware
-   sensors with their current temperature in a `Component` / `Temperature` table,
-   sorted by component name. Readings are refreshed every second, and sensors
-   without a readable value are shown as `Unknown`.
+   sensors with their current temperature in a `Sensor` / `Temperature` table,
+   sorted by sensor name in ascending order by default. The panel title shows the
+   selected position and the total number of sensors, e.g. `Temperatures (2/8)`,
+   and the panel width adapts to its content. Readings are refreshed every
+   second, and sensors without a readable value are shown as `Unknown`. The
+   selected row is highlighted only while the panel is focused.
 4. **Process table** — to the right of the temperatures panel. It lists all
-   visible processes with the currently selected one highlighted. The panel title
-   shows the selected position and the total number of processes, e.g.
-   `Processes (3/214)`, and appends `Search: <query>` while a filter is active.
-   The header marks the active sort column with an arrow.
+   visible processes with the currently selected one highlighted while the panel
+   is focused. The panel title shows the selected position and the total number
+   of processes, e.g. `Processes (3/214)`, and appends `Search: <query>` while a
+   filter is active. The header marks the active sort column with an arrow.
+
+Only the focused panel receives navigation and sorting shortcuts. Use `H` to
+focus the Temperatures panel (left) and `L` to focus the Processes panel
+(right); the selected row is highlighted in the focused panel.
 
 > On Windows, available memory is always equal to free memory, so the Available
 > row and its graph line are omitted; the panel shows Used, Free, and Total.
@@ -140,8 +161,9 @@ The screen is divided into four areas:
 
 Additional overlays:
 
-- **Help panel** (`h` / `?`) — static panel with two sections, **General** and
-  **Sorting**; close it with `h`, `?`, `q`, or `Esc`.
+- **Help panel** (`h` / `?`) — static panel with **General** keys and **Sorting**
+  shortcuts, split into **Processes** and **Temperatures** sections; close it
+  with `h`, `?`, `q`, or `Esc`.
 - **Kill confirmation** (`K`) — asks for confirmation before sending the signal.
 - **Error toast** — appears in the top-right corner for 3 seconds if a process
   cannot be killed (e.g. insufficient permissions).
@@ -162,10 +184,9 @@ RTOP uses four threads:
   [`crossterm`](https://crates.io/crates/crossterm), polls terminal events every
   100 ms, and redraws only when something changed.
 - **Stats thread** — samples CPU usage, average frequency, load average, and
-  memory via [`sysinfo`](https://crates.io/crates/sysinfo)
-  at `sysinfo::MINIMUM_CPU_UPDATE_INTERVAL`, keeps a bounded history, and renders
-  only the samples that fit in the graph, so scrolling starts as soon as the
-  visible window fills.
+  memory via [`sysinfo`](https://crates.io/crates/sysinfo) every 500 ms, keeps a
+  bounded history, and renders only the samples that fit in the graph, so
+  scrolling starts as soon as the visible window fills.
 - **Process thread** — refreshes the process list every 500 ms and handles kill
   requests sent by the UI.
 - **Temperature thread** — refreshes hardware sensors via
@@ -190,6 +211,7 @@ cargo clippy           # Run lints
 - No configurable refresh intervals or themes.
 - Sorting and filter state are not persisted between runs.
 - No tree visualization of the processes.
+- Filtering is available for processes only.
 - Process names and executable paths for processes owned by other users may be
   unavailable on some platforms.
 - Temperature sensors depend on the hardware and drivers; on systems where none

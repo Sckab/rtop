@@ -35,6 +35,8 @@ impl Keys {
             Key::new("/", "", "Filter processes"),
             Key::new("Esc", "", "Cancel the filter input"),
             Key::new("Enter", "", "Confirm the filter"),
+            Key::new("H", "", "Focus the temperature panel"),
+            Key::new("L", "", "Focus the processes panel"),
             Key::new("Alt + r", "", "Reset sorting"),
         ];
 

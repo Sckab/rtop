@@ -163,8 +163,18 @@ impl crate::app::App {
             Span::raw(self.stats.load_average.display()),
         ]);
 
-        let [left, right] =
-            Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).areas(panel_layout[0]);
+        #[cfg(not(windows))]
+        let constraints = [
+            Constraint::Fill(1),
+            Constraint::Length(load_average.width() as u16),
+        ];
+
+        // Windows doesn't support load average so we don't need to reserve the space
+        // for it
+        #[cfg(windows)]
+        let constraints = [Constraint::Fill(1), Constraint::Length(0)];
+
+        let [left, right] = Layout::horizontal(constraints).areas(panel_layout[0]);
 
         Paragraph::new(cpu_brand + frequency).render(left, buf);
 

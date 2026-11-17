@@ -1,4 +1,5 @@
 mod cpu;
+mod disks;
 mod filter;
 mod header;
 mod help;

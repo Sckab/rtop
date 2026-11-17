@@ -1,4 +1,5 @@
 pub mod cpu;
+pub mod disks;
 pub mod history;
 pub mod memory;
 pub mod process;
@@ -15,6 +16,7 @@ pub struct SystemStats {
     pub memory_total: memory::Memory,
     pub cpu: cpu::Cpu,
     pub load_average: LoadAverage,
+    pub disks: disks::Disks,
 }
 
 pub struct SystemInfo {

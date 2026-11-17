@@ -1,10 +1,11 @@
 use std::sync::mpsc::Receiver;
 
-use crate::system::{LoadAverage, SystemStats, cpu, history, memory};
+use crate::system::{LoadAverage, SystemStats, cpu, disks, history, memory};
 
 pub fn create_worker(
     rx_width: Receiver<usize>,
     mut system: sysinfo::System,
+    mut disks_info: sysinfo::Disks,
 ) -> Receiver<SystemStats> {
     let (tx, rx) = std::sync::mpsc::channel::<SystemStats>();
 
@@ -22,6 +23,8 @@ pub fn create_worker(
         loop {
             system.refresh_memory();
             system.refresh_cpu_all();
+
+            disks_info.refresh(true);
 
             let load_average = match sysinfo::System::load_average() {
                 Ok(l) => l,
@@ -59,6 +62,21 @@ pub fn create_worker(
             free_memory_history.push(free_memory, width);
             total_memory_history.push(total_memory, width);
 
+            let mut disks = vec![];
+
+            for disk in &disks_info {
+                let usage = disk.usage();
+
+                disks.push(disks::Disk {
+                    name: disk.name().to_os_string(),
+                    mount: disk.mount_point().to_path_buf(),
+                    read: usage.read_bytes,
+                    write: usage.written_bytes,
+                    available: disk.available_space(),
+                    total: disk.total_space(),
+                });
+            }
+
             let stats = SystemStats {
                 memory_used: memory::Memory {
                     value: used_memory,
@@ -88,6 +106,7 @@ pub fn create_worker(
                     five: load_average.five,
                     fifteen: load_average.fifteen,
                 },
+                disks: disks::Disks { disks },
             };
 
             if tx.send(stats).is_err() {

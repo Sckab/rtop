@@ -12,11 +12,18 @@ fn main() -> anyhow::Result<()> {
     let process_system = sysinfo::System::new()?;
 
     let users = sysinfo::Users::new_with_refreshed_list()?;
-
     let components = sysinfo::Components::new_with_refreshed_list()?;
+    let disks = sysinfo::Disks::new_with_refreshed_list()?;
 
     ratatui::run(|terminal| {
-        app::App::new().run(terminal, stats_system, process_system, components, users)
+        app::App::new().run(
+            terminal,
+            stats_system,
+            process_system,
+            components,
+            disks,
+            users,
+        )
     })?;
 
     Ok(())

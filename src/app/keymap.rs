@@ -31,12 +31,12 @@ impl Keys {
             Key::new("j", "Down", "Select next process"),
             Key::new("g", "Left", "Select first process"),
             Key::new("G", "Right", "Select last process"),
-            Key::new("K", "", "Kill selected process"),
+            Key::new("D", "", "Kill selected process"),
             Key::new("/", "", "Filter processes"),
             Key::new("Esc", "", "Cancel the filter input"),
             Key::new("Enter", "", "Confirm the filter"),
-            Key::new("H", "", "Focus the temperature panel"),
-            Key::new("L", "", "Focus the processes panel"),
+            Key::new("K", "", "Focus the temperature panel"),
+            Key::new("J", "", "Focus the processes panel"),
             Key::new("Alt + r", "", "Reset sorting"),
         ];
 

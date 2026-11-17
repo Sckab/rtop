@@ -70,17 +70,6 @@ impl crate::app::App {
         match key.code {
             KeyCode::Char('q') | KeyCode::Esc => self.quit = true,
             KeyCode::Char('h') | KeyCode::Char('?') => self.state.mode = Mode::Help,
-            KeyCode::Char('K') => {
-                if let Some(process) = self.selected_process() {
-                    self.state.mode = Mode::ConfirmKill {
-                        request: KillRequest {
-                            pid: process.pid,
-                            name: process.name.clone(),
-                            startup_time: process.startup_time,
-                        },
-                    };
-                }
-            }
             KeyCode::Char('/') => {
                 let mut text_area = TextArea::new(vec![
                     self.processes_state
@@ -94,8 +83,19 @@ impl crate::app::App {
 
                 self.state.mode = Mode::Search { text_area };
             }
-            KeyCode::Char('H') => self.state.selected_panel = SelectedPanel::Termperature,
-            KeyCode::Char('L') => self.state.selected_panel = SelectedPanel::Processes,
+            KeyCode::Char('D') => {
+                if let Some(process) = self.selected_process() {
+                    self.state.mode = Mode::ConfirmKill {
+                        request: KillRequest {
+                            pid: process.pid,
+                            name: process.name.clone(),
+                            startup_time: process.startup_time,
+                        },
+                    };
+                }
+            }
+            KeyCode::Char('J') => self.state.selected_panel = SelectedPanel::Termperature,
+            KeyCode::Char('K') => self.state.selected_panel = SelectedPanel::Processes,
             code => {
                 if key.modifiers.contains(KeyModifiers::ALT) {
                     self.handle_sorting(code, key.modifiers);

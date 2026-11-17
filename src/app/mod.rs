@@ -58,6 +58,7 @@ impl App {
         stats_system: sysinfo::System,
         process_system: sysinfo::System,
         components: sysinfo::Components,
+        disks: sysinfo::Disks,
         users: sysinfo::Users,
     ) -> io::Result<()> {
         let (tx_kill, rx_kill) = std::sync::mpsc::channel::<KillRequest>();
@@ -65,7 +66,7 @@ impl App {
 
         let _ = tx_width.send((terminal.size()?.width / 2) as usize);
 
-        let rx_stats = workers::stats::create_worker(rx_width, stats_system);
+        let rx_stats = workers::stats::create_worker(rx_width, stats_system, disks);
         let (rx_processes, rx_msg_kill) =
             workers::processes::create_worker(rx_kill, process_system, users);
         let rx_temperatures = workers::temperatures::create_worker(components);

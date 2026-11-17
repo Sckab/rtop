@@ -7,27 +7,44 @@ use crate::app::state::Mode;
 
 impl crate::app::App {
     pub fn render(&mut self, area: Rect, buf: &mut Buffer) {
-        let layout = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).split(area);
+        let [header_area, body_area] =
+            Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).areas(area);
 
-        let stats_layout =
-            Layout::vertical([Constraint::Percentage(42), Constraint::Fill(1)]).split(layout[1]);
+        // Two border rows and one header row, sized on the longer of the two panels.
+        let bottom_height = (self
+            .temperature_state
+            .temperatures
+            .len()
+            .max(self.stats.disks.disks.len()) as u16
+            + 3)
+        .clamp(5, 12)
+        .min(body_area.height / 3);
 
-        let cpu_memory_layout =
-            Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(stats_layout[0]);
+        let [stats_area, processes_area, bottom_area] = Layout::vertical([
+            Constraint::Percentage(35),
+            Constraint::Fill(1),
+            Constraint::Length(bottom_height),
+        ])
+        .areas(body_area);
 
-        let temperatures_max_width = (stats_layout[1].width / 2).max(1);
-        let temperatures_width = self.temperatures_panel_width().min(temperatures_max_width);
+        let [cpu_area, memory_area] =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).areas(stats_area);
 
-        let temperature_processes_layout =
+        let temperatures_width = self
+            .temperatures_panel_width()
+            .min((bottom_area.width / 3).max(1));
+
+        let [temperatures_area, disks_area] =
             Layout::horizontal([Constraint::Length(temperatures_width), Constraint::Fill(1)])
-                .split(stats_layout[1]);
+                .areas(bottom_area);
 
-        self.render_header(layout[0], buf);
+        self.render_header(header_area, buf);
 
-        self.render_cpu_usage(cpu_memory_layout[0], buf);
-        self.render_memory_usage(cpu_memory_layout[1], buf);
-        self.render_processes(temperature_processes_layout[1], buf);
-        self.render_temperatures(temperature_processes_layout[0], buf);
+        self.render_cpu_usage(cpu_area, buf);
+        self.render_memory_usage(memory_area, buf);
+        self.render_processes(processes_area, buf);
+        self.render_temperatures(temperatures_area, buf);
+        self.render_disks_usage(disks_area, buf);
 
         match &self.state.mode {
             Mode::Help => super::help::render_help_panel(self.keys.clone(), area, buf),
@@ -35,7 +52,7 @@ impl crate::app::App {
                 super::popups::render_kill_confirmation(&request.name, &request.pid, area, buf)
             }
             Mode::Search { text_area } => {
-                super::filter::render_process_filter_input(text_area, layout[1], buf);
+                super::filter::render_process_filter_input(text_area, body_area, buf);
             }
             _ => {}
         }

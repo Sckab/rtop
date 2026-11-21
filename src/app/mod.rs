@@ -11,6 +11,7 @@ use crate::{
         temperature::{Temperature, TemperatureState},
         workers,
     },
+    tui::NETWORK_PANEL_PERCENT,
 };
 
 mod input;
@@ -71,8 +72,10 @@ impl App {
 
         let (tx_network_width, rx_network_width) = std::sync::mpsc::channel::<usize>();
 
-        let _ = tx_cpu_ram_width.send((terminal.size()?.width / 2) as usize);
-        let _ = tx_network_width.send((terminal.size()?.width as f64 * 0.35) as usize);
+        let terminal_width = terminal.size()?.width;
+        let _ = tx_cpu_ram_width.send((terminal_width / 2) as usize);
+        let _ =
+            tx_network_width.send(terminal_width as usize * NETWORK_PANEL_PERCENT as usize / 100);
 
         let rx_stats = workers::stats::create_worker(rx_cpu_ram_width, stats_system);
         let (rx_processes, rx_msg_kill) =
@@ -83,7 +86,10 @@ impl App {
         let mut dirty = true;
 
         while !self.quit {
-            let _ = tx_cpu_ram_width.send((terminal.size()?.width / 2) as usize);
+            let terminal_width = terminal.size()?.width;
+            let _ = tx_cpu_ram_width.send((terminal_width / 2) as usize);
+            let _ = tx_network_width
+                .send(terminal_width as usize * NETWORK_PANEL_PERCENT as usize / 100);
 
             if self.toast.as_ref().is_some_and(Toast::is_expired) {
                 self.toast = None;

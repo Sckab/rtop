@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
 };
 
-use crate::app::state::Mode;
+use crate::{app::state::Mode, tui::NETWORK_PANEL_PERCENT};
 
 impl crate::app::App {
     pub fn render(&mut self, area: Rect, buf: &mut Buffer) {
@@ -27,9 +27,11 @@ impl crate::app::App {
         ])
         .areas(body_area);
 
-        let [network_area, processes_area] =
-            Layout::horizontal([Constraint::Percentage(35), Constraint::Fill(1)])
-                .areas(processes_area);
+        let [network_area, processes_area] = Layout::horizontal([
+            Constraint::Percentage(NETWORK_PANEL_PERCENT),
+            Constraint::Fill(1),
+        ])
+        .areas(processes_area);
 
         let [cpu_area, memory_area] =
             Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).areas(stats_area);

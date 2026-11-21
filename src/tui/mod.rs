@@ -11,4 +11,6 @@ mod render;
 mod temperatures;
 mod widgets;
 
+pub const NETWORK_PANEL_PERCENT: u16 = 35;
+
 pub use processes::prepare_display;

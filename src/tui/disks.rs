@@ -7,8 +7,7 @@ use ratatui::{
 
 use crate::system::io::disks::Disk;
 
-const DISKS_USAGE_HEADERS: [&str; 6] =
-    ["Name", "Mount Point", "Used", "Available %", "Total", "R/W"];
+const DISKS_USAGE_HEADERS: [&str; 6] = ["Name", "Mount Point", "Used", "Available", "Total", "R/W"];
 
 impl crate::app::App {
     fn disks_usage_row(&self, disk: &Disk) -> [String; 6] {
@@ -16,10 +15,7 @@ impl crate::app::App {
             disk.name.to_string_lossy().to_string(),
             disk.mount.to_string_lossy().to_string(),
             (self.size_formatter)(disk.total - disk.available),
-            format!(
-                "{:.1}%",
-                (disk.available as f64 / disk.total as f64) * 100.0
-            ),
+            (self.size_formatter)(disk.available),
             (self.size_formatter)(disk.total),
             format!(
                 "{}/{}",

@@ -36,10 +36,15 @@ impl crate::app::App {
             ],
             [
                 Constraint::Length(2),
-                Constraint::Length(download_speed_formatted_size.max(upload_speed_formatted_size)),
+                Constraint::Length(
+                    "Speed".len().max(
+                        download_speed_formatted_size.max(upload_speed_formatted_size) as usize,
+                    ) as u16,
+                ),
                 Constraint::Fill(1),
             ],
         )
+        .header(Row::new(["", "Speed", "Total"]).fg(Color::Green))
         .column_spacing(2)
         .render(area, buf);
     }

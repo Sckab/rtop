@@ -157,8 +157,9 @@ The screen is divided into four rows:
    adapts to its content. Readings are refreshed every second, and sensors
    without a readable value are shown as `Unknown`. The selected row is
    highlighted only while the panel is focused. The disks usage panel lists each
-   filesystem with `Name`, `Mount Point`, `Used`, `Available`, `Total`, and
-   `R/W` columns, and the row height adapts to the number of entries.
+   filesystem with `Name`, `Mount Point`, `Used`, `Available`, `Available %`,
+   `Total`, and `R/W` columns, and the row height adapts to the number of
+   entries.
 
 Only the focused panel receives navigation and sorting shortcuts. Use `H` to
 focus the Temperatures panel and `L` to focus the Processes panel; the selected

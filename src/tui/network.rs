@@ -130,7 +130,7 @@ impl crate::app::App {
         let max_value = parts.next().unwrap_or("0");
         let max_value_unit = parts.next().unwrap_or("B");
 
-        let x_axis = Axis::default().bounds([0.0, width as f64 - 0.5]);
+        let x_axis = Axis::default().bounds([0.0, width as f64 - 1.5]);
         let y_axis = Axis::default()
             .bounds([0.0, y_max])
             .labels([format!("0 {}", max_value_unit), max_value.to_string()])

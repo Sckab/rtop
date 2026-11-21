@@ -87,7 +87,7 @@ impl crate::app::App {
 
         let width = layout[CHART_ROW].width;
 
-        let x_axis = Axis::default().bounds([0.0, width as f64 - 0.5]);
+        let x_axis = Axis::default().bounds([0.0, width as f64 - 1.5]);
         let y_axis = Axis::default().bounds([0.0, 100.0]);
 
         let mut used_points = Vec::new();

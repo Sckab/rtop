@@ -71,11 +71,11 @@ impl crate::app::App {
         let free = Span::raw("Free: ").fg(FREE_COLOR);
 
         Paragraph::new(
-            used + (self.system_info.size_formatter)(self.stats.memory_used.value).into(),
+            used + (self.size_formatter)(self.stats.memory_used.value).into(),
         )
         .render(layout[0], buf);
         Paragraph::new(
-            free + (self.system_info.size_formatter)(self.stats.memory_free.value).into(),
+            free + (self.size_formatter)(self.stats.memory_free.value).into(),
         )
         .render(layout[FREE_ROW], buf);
 
@@ -85,7 +85,7 @@ impl crate::app::App {
 
             Paragraph::new(
                 available
-                    + (self.system_info.size_formatter)(self.stats.memory_available.value).into(),
+                    + (self.size_formatter)(self.stats.memory_available.value).into(),
             )
             .render(layout[1], buf);
         }
@@ -120,7 +120,7 @@ impl crate::app::App {
             .render(layout[CHART_ROW], buf);
 
         let title = Span::raw("Total: ").fg(Color::Green);
-        let size_formatted = Span::raw((self.system_info.size_formatter)(
+        let size_formatted = Span::raw((self.size_formatter)(
             self.stats.memory_total.value,
         ));
 

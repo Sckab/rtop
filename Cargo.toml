@@ -12,6 +12,7 @@ human-units = { version = "0.6.0", features = ["si-units"] }
 humansize = "2.1.3"
 ratatui = "0.30.2"
 ratatui-textarea = "0.9.4"
+regex = "1.13.2"
 sysinfo = "0.40.1"
 time = "0.3.55"
 whoami = "2.1.3"

@@ -13,7 +13,9 @@ fn main() -> anyhow::Result<()> {
 
     let users = sysinfo::Users::new_with_refreshed_list()?;
     let components = sysinfo::Components::new_with_refreshed_list()?;
+
     let disks = sysinfo::Disks::new_with_refreshed_list()?;
+    let network = sysinfo::Networks::new_with_refreshed_list()?;
 
     ratatui::run(|terminal| {
         app::App::new().run(
@@ -22,6 +24,7 @@ fn main() -> anyhow::Result<()> {
             process_system,
             components,
             disks,
+            network,
             users,
         )
     })?;

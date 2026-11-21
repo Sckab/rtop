@@ -4,6 +4,7 @@ mod filter;
 mod header;
 mod help;
 mod memory;
+mod network;
 mod popups;
 mod processes;
 mod render;

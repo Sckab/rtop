@@ -1,6 +1,6 @@
 pub mod cpu;
-pub mod disks;
 pub mod history;
+pub mod io;
 pub mod memory;
 pub mod process;
 pub mod sorting;
@@ -16,14 +16,12 @@ pub struct SystemStats {
     pub memory_total: memory::Memory,
     pub cpu: cpu::Cpu,
     pub load_average: LoadAverage,
-    pub disks: disks::Disks,
 }
 
 pub struct SystemInfo {
     pub host_name: String,
     pub os_name: String,
     pub user_name: String,
-    pub size_formatter: Box<dyn Fn(u64) -> String>,
 }
 
 #[derive(Default, Debug)]

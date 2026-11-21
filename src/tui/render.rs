@@ -15,7 +15,7 @@ impl crate::app::App {
             .temperature_state
             .temperatures
             .len()
-            .max(self.stats.disks.disks.len()) as u16
+            .max(self.io.disks.disks.len()) as u16
             + 3)
         .clamp(5, 12)
         .min(body_area.height / 3);
@@ -26,6 +26,10 @@ impl crate::app::App {
             Constraint::Length(bottom_height),
         ])
         .areas(body_area);
+
+        let [network_area, processes_area] =
+            Layout::horizontal([Constraint::Percentage(35), Constraint::Fill(1)])
+                .areas(processes_area);
 
         let [cpu_area, memory_area] =
             Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).areas(stats_area);
@@ -42,7 +46,10 @@ impl crate::app::App {
 
         self.render_cpu_usage(cpu_area, buf);
         self.render_memory_usage(memory_area, buf);
+
+        self.render_network(network_area, buf);
         self.render_processes(processes_area, buf);
+
         self.render_temperatures(temperatures_area, buf);
         self.render_disks_usage(disks_area, buf);
 

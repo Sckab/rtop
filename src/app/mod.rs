@@ -6,6 +6,7 @@ use crate::{
     app::state::State,
     system::{
         SystemInfo, SystemStats,
+        io::Io,
         process::{KillRequest, KillResponse, Process, ProcessesState},
         temperature::{Temperature, TemperatureState},
         workers,
@@ -28,6 +29,8 @@ pub struct App {
     pub keys: keymap::Keys,
     pub processes_state: ProcessesState,
     pub temperature_state: TemperatureState,
+    pub io: Io,
+    pub size_formatter: Box<dyn Fn(u64) -> String>,
 }
 
 impl App {
@@ -36,7 +39,6 @@ impl App {
             host_name: whoami::hostname().unwrap_or_else(|_| "Unknown".to_string()),
             os_name: whoami::distro().unwrap_or_else(|_| "Unknown".to_string()),
             user_name: whoami::username().unwrap_or_else(|_| "Unknown".to_string()),
-            size_formatter: Box::new(humansize::make_format(humansize::DECIMAL)),
         };
 
         Self {
@@ -49,6 +51,8 @@ impl App {
             keys: keymap::Keys::new(),
             processes_state: ProcessesState::default(),
             temperature_state: TemperatureState::default(),
+            io: Io::default(),
+            size_formatter: Box::new(humansize::make_format(humansize::DECIMAL)),
         }
     }
 
@@ -59,22 +63,27 @@ impl App {
         process_system: sysinfo::System,
         components: sysinfo::Components,
         disks: sysinfo::Disks,
+        network: sysinfo::Networks,
         users: sysinfo::Users,
     ) -> io::Result<()> {
         let (tx_kill, rx_kill) = std::sync::mpsc::channel::<KillRequest>();
-        let (tx_width, rx_width) = std::sync::mpsc::channel::<usize>();
+        let (tx_cpu_ram_width, rx_cpu_ram_width) = std::sync::mpsc::channel::<usize>();
 
-        let _ = tx_width.send((terminal.size()?.width / 2) as usize);
+        let (tx_network_width, rx_network_width) = std::sync::mpsc::channel::<usize>();
 
-        let rx_stats = workers::stats::create_worker(rx_width, stats_system, disks);
+        let _ = tx_cpu_ram_width.send((terminal.size()?.width / 2) as usize);
+        let _ = tx_network_width.send((terminal.size()?.width as f64 * 0.35) as usize);
+
+        let rx_stats = workers::stats::create_worker(rx_cpu_ram_width, stats_system);
         let (rx_processes, rx_msg_kill) =
             workers::processes::create_worker(rx_kill, process_system, users);
         let rx_temperatures = workers::temperatures::create_worker(components);
+        let rx_io = workers::io::create_worker(rx_network_width, network, disks);
 
         let mut dirty = true;
 
         while !self.quit {
-            let _ = tx_width.send((terminal.size()?.width / 2) as usize);
+            let _ = tx_cpu_ram_width.send((terminal.size()?.width / 2) as usize);
 
             if self.toast.as_ref().is_some_and(Toast::is_expired) {
                 self.toast = None;
@@ -87,6 +96,11 @@ impl App {
 
             while let Ok(stats) = rx_stats.try_recv() {
                 self.stats = stats;
+                dirty = true;
+            }
+
+            while let Ok(io) = rx_io.try_recv() {
+                self.io = io;
                 dirty = true;
             }
 
@@ -209,7 +223,7 @@ impl App {
 
     fn update_processes(&self, processes: &mut [Process]) -> Option<usize> {
         for process in processes.iter_mut() {
-            crate::tui::prepare_display(process, &self.system_info.size_formatter);
+            crate::tui::prepare_display(process, &self.size_formatter);
         }
 
         let selected_pid = self

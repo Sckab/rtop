@@ -10,7 +10,7 @@ use ratatui::{
 use crate::system::memory::Memory;
 
 impl crate::app::App {
-    fn get_dataset<'a>(
+    fn get_dataset_memory<'a>(
         &self,
         width: u16,
         points: &'a mut Vec<(f64, f64)>,
@@ -70,22 +70,17 @@ impl crate::app::App {
         let used = Span::raw("Used: ").fg(USED_COLOR);
         let free = Span::raw("Free: ").fg(FREE_COLOR);
 
-        Paragraph::new(
-            used + (self.size_formatter)(self.stats.memory_used.value).into(),
-        )
-        .render(layout[0], buf);
-        Paragraph::new(
-            free + (self.size_formatter)(self.stats.memory_free.value).into(),
-        )
-        .render(layout[FREE_ROW], buf);
+        Paragraph::new(used + (self.size_formatter)(self.stats.memory_used.value).into())
+            .render(layout[0], buf);
+        Paragraph::new(free + (self.size_formatter)(self.stats.memory_free.value).into())
+            .render(layout[FREE_ROW], buf);
 
         #[cfg(not(windows))]
         {
             let available = Span::raw("Available: ").fg(AVAILABLE_COLOR);
 
             Paragraph::new(
-                available
-                    + (self.size_formatter)(self.stats.memory_available.value).into(),
+                available + (self.size_formatter)(self.stats.memory_available.value).into(),
             )
             .render(layout[1], buf);
         }
@@ -101,18 +96,27 @@ impl crate::app::App {
         #[cfg(not(windows))]
         let mut available_points = Vec::new();
 
-        let mut data =
-            vec![self.get_dataset(width, &mut free_points, FREE_COLOR, &self.stats.memory_free)];
+        let mut data = vec![self.get_dataset_memory(
+            width,
+            &mut free_points,
+            FREE_COLOR,
+            &self.stats.memory_free,
+        )];
 
         #[cfg(not(windows))]
-        data.push(self.get_dataset(
+        data.push(self.get_dataset_memory(
             width,
             &mut available_points,
             AVAILABLE_COLOR,
             &self.stats.memory_available,
         ));
 
-        data.push(self.get_dataset(width, &mut used_points, USED_COLOR, &self.stats.memory_used));
+        data.push(self.get_dataset_memory(
+            width,
+            &mut used_points,
+            USED_COLOR,
+            &self.stats.memory_used,
+        ));
 
         Chart::new(data)
             .x_axis(x_axis)
@@ -120,9 +124,7 @@ impl crate::app::App {
             .render(layout[CHART_ROW], buf);
 
         let title = Span::raw("Total: ").fg(Color::Green);
-        let size_formatted = Span::raw((self.size_formatter)(
-            self.stats.memory_total.value,
-        ));
+        let size_formatted = Span::raw((self.size_formatter)(self.stats.memory_total.value));
 
         Paragraph::new(title + size_formatted).render(layout[TOTAL_ROW], buf);
     }

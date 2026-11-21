@@ -11,8 +11,9 @@ _A Rust TOP_
 
 RTOP is a fast, terminal-based system monitor written in Rust, inspired by `top`.
 It shows CPU and memory usage with live history graphs, live hardware
-temperatures, and sortable process and temperature tables; the process list can
-be filtered and processes can be terminated.
+temperatures, disk usage, and network throughput, plus sortable process and
+temperature tables; the process list can be filtered and processes can be
+terminated.
 
 </div>
 
@@ -21,6 +22,8 @@ be filtered and processes can be terminated.
 - **Live CPU monitoring** — CPU brand and average frequency, load average (1, 5, and 15 minutes; Unix only), total and per-core usage, and a scrolling history graph.
 - **Live memory monitoring** — used, available, and free memory in a combined scrolling history graph; total memory is shown as a value. On Windows, available and free are identical, so only free is listed.
 - **Temperature monitoring** — lists hardware sensors with their current temperature in a selectable, sortable table, refreshed every second. The selected sensor is preserved across refreshes and sorting. Available sensors depend on the platform and drivers; unavailable readings are shown as `Unknown`.
+- **Network monitoring** — aggregate RX/TX speed and total received/transmitted bytes, with a scrolling braille history graph. Loopback and common virtual interfaces (Docker, libvirt, VMware, VirtualBox) are excluded.
+- **Disk usage** — per-filesystem name, mount point, used and available space, total size, and read/write counters, refreshed every second.
 - **Process list** — PID, name (with executable path), user, thread count, CPU %, and memory usage.
 - **Sorting and filtering** — sort the process and temperature tables with `Alt`-based shortcuts, hold `Shift` for descending, and filter processes by name or executable path. The active sort column is marked with an arrow.
 - **Kill processes** — with a confirmation prompt, a start-time check to avoid killing a recycled PID, and an error toast if the operation fails.
@@ -129,7 +132,7 @@ Inside the kill confirmation dialog:
 
 ## Interface
 
-The screen is divided into four areas:
+The screen is divided into four rows:
 
 1. **Header** — `user@host | OS` on the left, current local time on the right.
 2. **CPU and memory panels** — side by side at the top. The CPU panel shows the
@@ -137,22 +140,30 @@ The screen is divided into four areas:
    15 minutes) on the right, the per-core usage grid with total CPU usage, and a
    braille history graph. The memory panel shows used, available, and free memory
    in a combined braille history graph, plus total memory as a value.
-3. **Temperatures panel** — below the CPU panel. It lists the available hardware
-   sensors with their current temperature in a `Sensor` / `Temperature` table,
-   sorted by sensor name in ascending order by default. The panel title shows the
-   selected position and the total number of sensors, e.g. `Temperatures (2/8)`,
-   and the panel width adapts to its content. Readings are refreshed every
-   second, and sensors without a readable value are shown as `Unknown`. The
-   selected row is highlighted only while the panel is focused.
-4. **Process table** — to the right of the temperatures panel. It lists all
-   visible processes with the currently selected one highlighted while the panel
-   is focused. The panel title shows the selected position and the total number
-   of processes, e.g. `Processes (3/214)`, and appends `Search: <query>` while a
-   filter is active. The header marks the active sort column with an arrow.
+3. **Network panel and process table** — the network panel is on the left (about
+   one third of the width) and shows the current RX/TX speed, the total bytes
+   received and transmitted, and a combined braille history graph. Loopback and
+   common virtual interfaces (Docker, libvirt, VMware, VirtualBox) are excluded.
+   The process table is on the right. It lists all visible processes with the
+   currently selected one highlighted while the panel is focused. The panel title
+   shows the selected position and the total number of processes, e.g.
+   `Processes (3/214)`, and appends `Search: <query>` while a filter is active.
+   The header marks the active sort column with an arrow.
+4. **Temperatures and disks usage panels** — side by side at the bottom. The
+   temperatures panel lists the available hardware sensors with their current
+   temperature in a `Sensor` / `Temperature` table, sorted by sensor name in
+   ascending order by default. The panel title shows the selected position and
+   the total number of sensors, e.g. `Temperatures (2/8)`, and the panel width
+   adapts to its content. Readings are refreshed every second, and sensors
+   without a readable value are shown as `Unknown`. The selected row is
+   highlighted only while the panel is focused. The disks usage panel lists each
+   filesystem with `Name`, `Mount Point`, `Used`, `Available %`, `Total`, and
+   `R/W` columns, and the row height adapts to the number of entries.
 
 Only the focused panel receives navigation and sorting shortcuts. Use `H` to
-focus the Temperatures panel (left) and `L` to focus the Processes panel
-(right); the selected row is highlighted in the focused panel.
+focus the Temperatures panel and `L` to focus the Processes panel; the selected
+row is highlighted in the focused panel. The network and disks panels are
+informational only.
 
 > On Windows, available memory is always equal to free memory, so the Available
 > row and its graph line are omitted; the panel shows Used, Free, and Total.
@@ -178,7 +189,7 @@ Additional overlays:
 
 ## How It Works
 
-RTOP uses four threads:
+RTOP uses five threads:
 
 - **UI thread** — renders with [`ratatui`](https://crates.io/crates/ratatui) and
   [`crossterm`](https://crates.io/crates/crossterm), polls terminal events every
@@ -189,6 +200,10 @@ RTOP uses four threads:
   scrolling starts as soon as the visible window fills.
 - **Process thread** — refreshes the process list every 500 ms and handles kill
   requests sent by the UI.
+- **I/O thread** — refreshes disks and network interfaces via
+  [`sysinfo`](https://crates.io/crates/sysinfo) every second, computes network
+  speeds from the received/transmitted byte deltas, and keeps bounded histories
+  for the graph.
 - **Temperature thread** — refreshes hardware sensors via
   [`sysinfo`](https://crates.io/crates/sysinfo) every second and sends the
   readings to the UI.
@@ -216,6 +231,9 @@ cargo clippy           # Run lints
   unavailable on some platforms.
 - Temperature sensors depend on the hardware and drivers; on systems where none
   are exposed, the Temperatures panel only shows its header.
+- Network throughput excludes loopback and common virtual interfaces; the
+  exclusion list is not configurable.
+- Disk and network metrics depend on the counters exposed by the platform.
 - Killing processes is the only write operation performed by the application.
 
 ## License

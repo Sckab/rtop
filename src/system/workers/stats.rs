@@ -23,10 +23,7 @@ pub fn create_worker(
             system.refresh_memory();
             system.refresh_cpu_all();
 
-            let load_average = match sysinfo::System::load_average() {
-                Ok(l) => l,
-                Err(_) => sysinfo::LoadAvg::default(),
-            };
+            let load_average = sysinfo::System::load_average().unwrap_or_default();
 
             while let Ok(w) = rx_width.try_recv() {
                 width = w;
@@ -45,7 +42,7 @@ pub fn create_worker(
                 frequency += cpu.frequency();
             }
 
-            frequency = frequency / cpus.len() as u64;
+            frequency /= cpus.len() as u64;
 
             let used_memory = system.used_memory();
             let available_memory = system.available_memory();

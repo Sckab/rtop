@@ -24,6 +24,7 @@ pub enum SelectedPanel {
     #[default]
     Processes,
     Termperature,
+    DiskUsage,
 }
 
 #[derive(Default)]
@@ -54,4 +55,5 @@ impl Toast {
 pub struct TableStates {
     pub process_table: TableState,
     pub temperature_table: TableState,
+    pub disks_table: TableState,
 }

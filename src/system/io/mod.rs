@@ -12,7 +12,7 @@ pub const EXCLUDED_NETWORK_INTERFACES: &[&str] = &[
     "^vboxnet.*",
 ];
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Io {
     pub disks: disks::Disks,
     pub network: network::Network,

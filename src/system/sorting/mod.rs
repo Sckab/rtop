@@ -1,6 +1,8 @@
+mod disks;
 mod process;
 mod temperature;
 
+pub use disks::*;
 pub use process::*;
 pub use temperature::*;
 

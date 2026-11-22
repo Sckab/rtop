@@ -1,5 +1,7 @@
 use std::{ffi::OsString, path::PathBuf};
 
+use crate::system::sorting::DisksSort;
+
 #[derive(Debug, Default)]
 pub struct Disk {
     pub name: OsString,
@@ -10,7 +12,8 @@ pub struct Disk {
     pub total: u64,
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Disks {
     pub disks: Vec<Disk>,
+    pub sort: DisksSort,
 }

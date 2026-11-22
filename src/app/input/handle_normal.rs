@@ -5,10 +5,12 @@ use ratatui_textarea::TextArea;
 use super::*;
 use crate::app::state::{Mode, SelectedPanel};
 use crate::system::process::KillRequest;
-use crate::system::sorting::{ProcessSort, ProcessSortType, TemperatureSort, TemperatureSortType};
+use crate::system::sorting::{
+    DisksSort, DisksSortType, ProcessSort, ProcessSortType, TemperatureSort, TemperatureSortType,
+};
 
 impl crate::app::App {
-    fn handle_sorting(&mut self, key: KeyCode, modifiers: KeyModifiers) {
+    fn handle_panel_keys(&mut self, key: KeyCode, modifiers: KeyModifiers) {
         let shift = modifiers.contains(KeyModifiers::SHIFT);
 
         match self.state.selected_panel {
@@ -37,6 +39,17 @@ impl crate::app::App {
                 KeyCode::Char('r') => {
                     self.processes_state.sort = ProcessSort::new(ProcessSortType::None, shift);
                 }
+                KeyCode::Char('D') => {
+                    if let Some(process) = self.selected_process() {
+                        self.state.mode = Mode::ConfirmKill {
+                            request: KillRequest {
+                                pid: process.pid,
+                                name: process.name.clone(),
+                                startup_time: process.startup_time,
+                            },
+                        };
+                    }
+                }
                 _ => {}
             },
             SelectedPanel::Termperature => {
@@ -63,6 +76,33 @@ impl crate::app::App {
                     self.resort_temperatures();
                 }
             }
+            SelectedPanel::DiskUsage => match key {
+                KeyCode::Char('n') | KeyCode::Char('N') => {
+                    self.io.disks.sort = DisksSort::new(DisksSortType::Name, shift);
+                }
+                KeyCode::Char('m') | KeyCode::Char('M') => {
+                    self.io.disks.sort = DisksSort::new(DisksSortType::MountPoint, shift);
+                }
+                KeyCode::Char('u') | KeyCode::Char('U') => {
+                    self.io.disks.sort = DisksSort::new(DisksSortType::Used, shift);
+                }
+                KeyCode::Char('a') | KeyCode::Char('A') => {
+                    self.io.disks.sort = DisksSort::new(DisksSortType::Available, shift);
+                }
+                KeyCode::Char('t') | KeyCode::Char('T') => {
+                    self.io.disks.sort = DisksSort::new(DisksSortType::Total, shift);
+                }
+                KeyCode::Char('d') | KeyCode::Char('D') => {
+                    self.io.disks.sort = DisksSort::new(DisksSortType::Read, shift);
+                }
+                KeyCode::Char('w') | KeyCode::Char('W') => {
+                    self.io.disks.sort = DisksSort::new(DisksSortType::Write, shift);
+                }
+                KeyCode::Char('r') => {
+                    self.io.disks.sort = DisksSort::new(DisksSortType::None, shift);
+                }
+                _ => {}
+            },
         }
     }
 
@@ -83,22 +123,22 @@ impl crate::app::App {
 
                 self.state.mode = Mode::Search { text_area };
             }
-            KeyCode::Char('D') => {
-                if let Some(process) = self.selected_process() {
-                    self.state.mode = Mode::ConfirmKill {
-                        request: KillRequest {
-                            pid: process.pid,
-                            name: process.name.clone(),
-                            startup_time: process.startup_time,
-                        },
-                    };
-                }
-            }
-            KeyCode::Char('J') => self.state.selected_panel = SelectedPanel::Termperature,
             KeyCode::Char('K') => self.state.selected_panel = SelectedPanel::Processes,
+            KeyCode::Char('J') => match self.state.selected_panel {
+                SelectedPanel::Processes => self.state.selected_panel = SelectedPanel::DiskUsage,
+                _ => {}
+            },
+            KeyCode::Char('H') => match self.state.selected_panel {
+                SelectedPanel::DiskUsage => self.state.selected_panel = SelectedPanel::Termperature,
+                _ => {}
+            },
+            KeyCode::Char('L') => match self.state.selected_panel {
+                SelectedPanel::Termperature => self.state.selected_panel = SelectedPanel::DiskUsage,
+                _ => {}
+            },
             code => {
                 if key.modifiers.contains(KeyModifiers::ALT) {
-                    self.handle_sorting(code, key.modifiers);
+                    self.handle_panel_keys(code, key.modifiers);
                 } else {
                     match self.state.selected_panel {
                         SelectedPanel::Processes => {
@@ -114,6 +154,13 @@ impl crate::app::App {
                             utility::navigate(
                                 &mut self.tables.temperature_table,
                                 self.temperature_state.temperatures.len(),
+                                code,
+                            );
+                        }
+                        SelectedPanel::DiskUsage => {
+                            utility::navigate(
+                                &mut self.tables.disks_table,
+                                self.io.disks.disks.len(),
                                 code,
                             );
                         }

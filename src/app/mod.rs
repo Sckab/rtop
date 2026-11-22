@@ -6,8 +6,9 @@ use crate::{
     app::state::State,
     system::{
         SystemInfo, SystemStats,
-        io::Io,
+        io::{Io, disks::Disk},
         process::{KillRequest, KillResponse, Process, ProcessesState},
+        sorting::DisksSort,
         temperature::{Temperature, TemperatureState},
         workers,
     },
@@ -68,9 +69,11 @@ impl App {
         users: sysinfo::Users,
     ) -> io::Result<()> {
         let (tx_kill, rx_kill) = std::sync::mpsc::channel::<KillRequest>();
-        let (tx_cpu_ram_width, rx_cpu_ram_width) = std::sync::mpsc::channel::<usize>();
 
+        let (tx_cpu_ram_width, rx_cpu_ram_width) = std::sync::mpsc::channel::<usize>();
         let (tx_network_width, rx_network_width) = std::sync::mpsc::channel::<usize>();
+
+        let (tx_disks_sorting, rx_disks_sorting) = std::sync::mpsc::channel::<DisksSort>();
 
         let terminal_width = terminal.size()?.width;
         let _ = tx_cpu_ram_width.send((terminal_width / 2) as usize);
@@ -81,7 +84,7 @@ impl App {
         let (rx_processes, rx_msg_kill) =
             workers::processes::create_worker(rx_kill, process_system, users);
         let rx_temperatures = workers::temperatures::create_worker(components);
-        let rx_io = workers::io::create_worker(rx_network_width, network, disks);
+        let rx_io = workers::io::create_worker(rx_network_width, rx_disks_sorting, network, disks);
 
         let mut dirty = true;
 
@@ -102,11 +105,6 @@ impl App {
 
             while let Ok(stats) = rx_stats.try_recv() {
                 self.stats = stats;
-                dirty = true;
-            }
-
-            while let Ok(io) = rx_io.try_recv() {
-                self.io = io;
                 dirty = true;
             }
 
@@ -144,6 +142,15 @@ impl App {
                 dirty = true;
             }
 
+            while let Ok(mut io) = rx_io.try_recv() {
+                let selected = self.update_disks(&mut io.disks.disks);
+
+                self.io = io;
+                self.tables.disks_table.select(selected);
+
+                dirty = true;
+            }
+
             if self.handle_events()? {
                 dirty = true;
             }
@@ -152,6 +159,8 @@ impl App {
                 terminal.draw(|frame| self.render(frame.area(), frame.buffer_mut()))?;
                 dirty = false;
             }
+
+            let _ = tx_disks_sorting.send(self.io.disks.sort.clone());
         }
 
         Ok(())
@@ -199,14 +208,14 @@ impl App {
     fn update_temperatures(&self, temepratures: &mut [Temperature]) -> Option<usize> {
         self.temperature_state.sort.sort_temperatures(temepratures);
 
-        let selected_pid = self
+        let selected_temp = self
             .tables
             .temperature_table
             .selected()
             .and_then(|index| self.temperature_state.temperatures.get(index))
             .map(|temperature| temperature.sensor.as_str());
 
-        selected_pid
+        selected_temp
             .and_then(|temperature| {
                 temepratures
                     .iter()
@@ -222,6 +231,37 @@ impl App {
                             .selected()
                             .unwrap_or(0)
                             .min(temepratures.len() - 1),
+                    )
+                }
+            })
+    }
+
+    fn update_disks(&self, disks: &mut [Disk]) -> Option<usize> {
+        self.io.disks.sort.sort_disks(disks);
+
+        let selected_disk = self
+            .tables
+            .disks_table
+            .selected()
+            .and_then(|index| self.io.disks.disks.get(index))
+            .and_then(|disk| disk.mount.to_str());
+
+        selected_disk
+            .and_then(|mount| {
+                disks
+                    .iter()
+                    .position(|disk| disk.mount.to_str() == Some(mount))
+            })
+            .or_else(|| {
+                if disks.is_empty() {
+                    None
+                } else {
+                    Some(
+                        self.tables
+                            .disks_table
+                            .selected()
+                            .unwrap_or(0)
+                            .min(disks.len() - 1),
                     )
                 }
             })

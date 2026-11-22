@@ -2,8 +2,11 @@ use ratatui::{
     buffer::{Buffer, CellWidth},
     layout::{Constraint, Layout, Rect},
     style::{Color, Style},
+    symbols::scrollbar::VERTICAL,
     text::Span,
-    widgets::{Cell, Clear, Paragraph, Row, Table, Widget},
+    widgets::{
+        Cell, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation, ScrollbarState, Table, Widget,
+    },
 };
 
 use crate::{app::keymap, tui::widgets::get_bordered_block};
@@ -95,7 +98,7 @@ pub fn render_help_panel(keys: keymap::Keys, area: Rect, buf: &mut Buffer, scrol
         .max(sorting_temperatures_widths.0 + sorting_temperatures_widths.2 + COLUMN_SPACING)
         .max(sorting_disks_widths.0 + sorting_disks_widths.2 + COLUMN_SPACING);
 
-    let content_width = general_width.max(sorting_width);
+    let required_width = general_width.max(sorting_width);
 
     let general_height = keys.general.len() as u16 + 1; // include the table header
     let content_height = general_height
@@ -107,7 +110,9 @@ pub fn render_help_panel(keys: keymap::Keys, area: Rect, buf: &mut Buffer, scrol
         + 1
         + keys.sorting_disks.len() as u16;
 
-    let width = (content_width + 2).min(area.width.saturating_sub(2));
+    let width =
+        (required_width + 2 + u16::from(content_height + 2 > area.height.saturating_sub(2)))
+            .min(area.width.saturating_sub(2));
     let height = (content_height + 2).min(area.height.saturating_sub(2));
 
     if width < 3 || height < 3 {
@@ -119,7 +124,8 @@ pub fn render_help_panel(keys: keymap::Keys, area: Rect, buf: &mut Buffer, scrol
 
     Clear.render(area_centered, buf);
 
-    let title = if height < content_height + 2 {
+    let has_scrollbar = height < content_height + 2;
+    let title = if has_scrollbar {
         " Help (j/k to scroll) "
     } else {
         " Help "
@@ -129,7 +135,12 @@ pub fn render_help_panel(keys: keymap::Keys, area: Rect, buf: &mut Buffer, scrol
 
     // Render the full content off-screen, then copy only the visible rows into
     // the popup so the help can scroll without a `Paragraph`/`scroll` wrapper.
-    let content_area = Rect::new(0, 0, popup_area.width, content_height);
+    let content_width = if has_scrollbar {
+        popup_area.width.saturating_sub(1)
+    } else {
+        popup_area.width
+    };
+    let content_area = Rect::new(0, 0, content_width, content_height);
     let mut content_buf = Buffer::empty(content_area);
 
     let layout = Layout::vertical([
@@ -191,10 +202,42 @@ pub fn render_help_panel(keys: keymap::Keys, area: Rect, buf: &mut Buffer, scrol
             break;
         }
 
-        for x in 0..popup_area.width {
+        for x in 0..content_width {
             if let Some(cell) = content_buf.cell((x, source_y)) {
                 buf[(popup_area.x + x, popup_area.y + y)] = cell.clone();
             }
         }
+    }
+
+    if has_scrollbar {
+        let scrollbar_area = Rect::new(
+            popup_area.x + popup_area.width - 1,
+            popup_area.y,
+            1,
+            popup_area.height,
+        );
+
+        // Map the scroll offset (0..=max_scroll) onto the range expected by
+        // `ScrollbarState` (0..=content_length - 1) so the thumb reaches the
+        // bottom when the last line is visible.
+        let position = scroll as usize * (content_height as usize - 1) / max_scroll.max(1);
+
+        let mut scrollbar_state = ScrollbarState::new(content_height as usize)
+            .position(position)
+            .viewport_content_length(popup_area.height as usize);
+
+        let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+            .symbols(VERTICAL)
+            .begin_style(Style::new().fg(Color::Green))
+            .end_style(Style::new().fg(Color::Green))
+            .track_style(Style::new().fg(Color::DarkGray))
+            .thumb_style(Style::new().fg(Color::Green));
+
+        ratatui::widgets::StatefulWidget::render(
+            scrollbar,
+            scrollbar_area,
+            buf,
+            &mut scrollbar_state,
+        );
     }
 }

@@ -28,6 +28,7 @@ can be terminated.
 - **Sorting and filtering** — sort the process, temperature, and disk tables with `Alt`-based shortcuts, hold `Shift` for descending, and filter processes by name or executable path. The active sort column is marked with an arrow.
 - **Kill processes** — with a confirmation prompt, a start-time check to avoid killing a recycled PID, and an error toast if the operation fails.
 - **Vim-style keybindings** — `j`/`k`/`g`/`G` for navigation in the focused panel, `K`/`J`/`H`/`L` to move focus between panels, `h`/`?` for the scrollable help, `q` to quit, plus `Alt`-based sorting.
+- **Customizable themes** — colors for panels, tables, graphs, and selection can be overridden with an optional TOML theme file; see [Themes](#themes).
 - **Responsive layout** — per-core CPU stats are laid out in multiple columns based on terminal width.
 - **Non-blocking sampling** — system data is collected on background threads, so the UI stays responsive.
 
@@ -66,29 +67,84 @@ cargo install --git https://github.com/Sckab/rtop.git
 rtop
 ```
 
-RTOP takes no command-line arguments (other than `--help` and `--version`) and
-has no configuration file: it starts in the alternate screen and exits with `q`
-or `Esc`.
+RTOP starts in the alternate screen and exits with `q` or `Esc`. It accepts
+`-t`/`--theme-file <PATH>` to load a theme from a custom path; by default it
+reads the platform configuration path described in [Themes](#themes).
+
+### Themes
+
+RTOP ships with a built-in green-on-black theme. At startup it reads an optional
+TOML theme file from the platform configuration directory:
+
+| Platform | Default path                                                             |
+| -------- | ------------------------------------------------------------------------ |
+| Linux    | `$XDG_CONFIG_HOME/rtop/theme.toml` (usually `~/.config/rtop/theme.toml`) |
+| macOS    | `~/Library/Application Support/rtop/theme.toml`                          |
+| Windows  | `%APPDATA%\rtop\theme.toml`                                              |
+
+Use `-t`/`--theme-file` to load a theme from another path:
+
+```bash
+rtop --theme-file ~/my-theme.toml
+```
+
+If the file does not exist, the built-in theme is used. If it exists but cannot
+be parsed, RTOP exits with an error. Every field is optional; missing fields keep
+their built-in value.
+
+```toml
+primary = "green"
+secondary = "green"
+table_headers = "green"
+error = "red"
+not_selected_fg = "green"
+not_selected_bg = "black"
+selected_fg = "black"
+selected_bg = "green"
+rx = "magenta"
+tx = "yellow"
+memory_used = "red"
+memory_available = "yellow"
+memory_free = "green"
+cpu_graph = "white"
+```
+
+Colors accept a named color (`black`, `red`, `green`, `yellow`, `blue`,
+`magenta`, `cyan`, `gray`, `dark gray`, `light red`, `light green`,
+`light yellow`, `light blue`, `light magenta`, `light cyan`, `white`), a hex
+value (`"#ff8800"`), or an RGB triplet (`"rgb(255, 136, 0)"`).
+
+| Field                                            | Used for                                                     |
+| ------------------------------------------------ | ------------------------------------------------------------ |
+| `primary`                                        | Panel borders and titles, chart axis labels, help scrollbar  |
+| `secondary`                                      | Host name, CPU details, per-core names, total memory label   |
+| `table_headers`                                  | Table header labels                                          |
+| `error`                                          | `@` in the header, error toast, `[Y] Yes` in the kill prompt |
+| `not_selected_fg`, `not_selected_bg`             | Selected row when its panel is not focused                   |
+| `selected_fg`, `selected_bg`                     | Selected row when its panel is focused                       |
+| `rx`, `tx`                                       | Network RX/TX labels and graph lines                         |
+| `memory_used`, `memory_available`, `memory_free` | Memory labels and graph lines                                |
+| `cpu_graph`                                      | CPU history graph line                                       |
 
 ### Keybindings
 
-| Key        | Action                                       |
-| ---------- | -------------------------------------------- |
-| `K`        | Focus the Processes panel                    |
-| `J`        | Focus the Disks panel (from Processes)       |
-| `H`        | Focus the Temperatures panel (from Disks)    |
-| `L`        | Focus the Disks panel (from Temperatures)    |
-| `h`, `?`   | Show / hide the help panel                   |
-| `q`, `Esc` | Quit (or close the current panel)            |
-| `k`, `↑`   | Select the previous row in the focused panel |
-| `j`, `↓`   | Select the next row in the focused panel     |
-| `g`, `←`   | Select the first row in the focused panel    |
-| `G`, `→`   | Select the last row in the focused panel     |
-| `Alt + D`  | Kill the selected process                    |
-| `/`        | Filter processes                             |
-| `Esc`      | Cancel the filter input                      |
-| `Enter`    | Confirm the filter                           |
-| `Alt + r`  | Reset sorting for the focused panel          |
+| Key        | Action                                            |
+| ---------- | ------------------------------------------------- |
+| `K`        | Move focus up (Processes panel)                   |
+| `J`        | Move focus down (Disks panel, from Processes)     |
+| `H`        | Move focus left (Temperatures panel, from Disks)  |
+| `L`        | Move focus right (Disks panel, from Temperatures) |
+| `h`, `?`   | Show / hide the help panel                        |
+| `q`, `Esc` | Quit (or close the current panel)                 |
+| `k`, `↑`   | Select the previous row in the focused panel      |
+| `j`, `↓`   | Select the next row in the focused panel          |
+| `g`, `←`   | Select the first row in the focused panel         |
+| `G`, `→`   | Select the last row in the focused panel          |
+| `Alt + D`  | Kill the selected process                         |
+| `/`        | Filter processes                                  |
+| `Esc`      | Cancel the filter input                           |
+| `Enter`    | Confirm the filter                                |
+| `Alt + r`  | Reset sorting for the focused panel               |
 
 Navigation wraps within the focused panel: pressing `j` on the last row jumps to
 the first one, and `k` on the first row jumps to the last one. `/` always acts on
@@ -247,7 +303,7 @@ cargo clippy           # Run lints
 
 ## Limitations
 
-- No configurable refresh intervals or themes.
+- No configurable refresh intervals.
 - Sorting and filter state are not persisted between runs.
 - No tree visualization of the processes.
 - Filtering is available for processes only.

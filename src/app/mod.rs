@@ -65,6 +65,7 @@ impl App {
 
     pub fn run(
         &mut self,
+        theme: Theme,
         terminal: &mut DefaultTerminal,
         stats_system: sysinfo::System,
         process_system: sysinfo::System,
@@ -90,6 +91,8 @@ impl App {
         let rx_io = workers::io::create_worker(rx_network_width, network, disks);
 
         let mut dirty = true;
+
+        self.theme = theme;
 
         while !self.quit {
             let terminal_width = terminal.size()?.width;

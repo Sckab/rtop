@@ -1,8 +1,13 @@
+use std::path::PathBuf;
+
+use serde::Deserialize;
+
 use crate::theme::color::{Color, ascii_color::AsciiColor};
 
 pub mod color;
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
+#[serde(default)]
 pub struct Theme {
     pub primary: Color,
     pub secondary: Color,
@@ -42,4 +47,11 @@ impl Default for Theme {
             cpu_graph: Color::Ascii(AsciiColor::White),
         }
     }
+}
+
+pub fn get_default_path() -> PathBuf {
+    dirs::config_dir()
+        .unwrap_or_default()
+        .join("rtop")
+        .join("theme.toml")
 }

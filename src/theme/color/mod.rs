@@ -1,4 +1,5 @@
 use ratatui::style;
+use serde::Deserialize;
 
 pub(super) mod ascii_color;
 
@@ -6,6 +7,15 @@ pub(super) mod ascii_color;
 pub enum Color {
     Ascii(ascii_color::AsciiColor),
     Rgb(u8, u8, u8),
+}
+
+impl Color {
+    pub fn to_ratatui_color(&self) -> style::Color {
+        match self {
+            Color::Ascii(color) => color.to_ratatui_color(),
+            Color::Rgb(r, g, b) => style::Color::Rgb(*r, *g, *b),
+        }
+    }
 }
 
 impl From<Color> for ratatui::style::Color {
@@ -26,12 +36,14 @@ impl From<&Color> for ratatui::style::Color {
     }
 }
 
-impl Color {
-    pub fn to_ratatui_color(&self) -> style::Color {
-        match self {
-            Color::Ascii(color) => color.to_ratatui_color(),
-            Color::Rgb(r, g, b) => style::Color::Rgb(*r, *g, *b),
-        }
+impl<'de> Deserialize<'de> for Color {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+
+        Self::try_from(value).map_err(serde::de::Error::custom)
     }
 }
 

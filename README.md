@@ -11,9 +11,9 @@ _A Rust TOP_
 
 RTOP is a fast, terminal-based system monitor written in Rust, inspired by `top`.
 It shows CPU and memory usage with live history graphs, live hardware
-temperatures, disk usage, and network throughput, plus sortable process and
-temperature tables; the process list can be filtered and processes can be
-terminated.
+temperatures, disk usage, and network throughput, plus sortable process,
+temperature, and disk tables; the process list can be filtered and processes
+can be terminated.
 
 </div>
 
@@ -23,11 +23,11 @@ terminated.
 - **Live memory monitoring** — used, available, and free memory in a combined scrolling history graph; total memory is shown as a value. On Windows, available and free are identical, so only free is listed.
 - **Temperature monitoring** — lists hardware sensors with their current temperature in a selectable, sortable table, refreshed every second. The selected sensor is preserved across refreshes and sorting. Available sensors depend on the platform and drivers; unavailable readings are shown as `Unknown`.
 - **Network monitoring** — aggregate RX/TX speed and total received/transmitted bytes, with a scrolling braille history graph. Loopback and common virtual interfaces (Docker, libvirt, VMware, VirtualBox) are excluded.
-- **Disk usage** — per-filesystem name, mount point, used and available space, total size, and read/write counters, refreshed every second.
+- **Disk usage** — per-filesystem name, mount point, used and available space, total size, and read/write counters, refreshed every second, in a selectable and sortable table. The selected disk is preserved across refreshes and sorting.
 - **Process list** — PID, name (with executable path), user, thread count, CPU %, and memory usage.
-- **Sorting and filtering** — sort the process and temperature tables with `Alt`-based shortcuts, hold `Shift` for descending, and filter processes by name or executable path. The active sort column is marked with an arrow.
+- **Sorting and filtering** — sort the process, temperature, and disk tables with `Alt`-based shortcuts, hold `Shift` for descending, and filter processes by name or executable path. The active sort column is marked with an arrow.
 - **Kill processes** — with a confirmation prompt, a start-time check to avoid killing a recycled PID, and an error toast if the operation fails.
-- **Vim-style keybindings** — `j`/`k`/`g`/`G` for navigation in the focused panel, `H`/`L` to switch panels, `h`/`?` for help, `q` to quit, plus `Alt`-based sorting.
+- **Vim-style keybindings** — `j`/`k`/`g`/`G` for navigation in the focused panel, `K`/`J`/`H`/`L` to move focus between panels, `h`/`?` for the scrollable help, `q` to quit, plus `Alt`-based sorting.
 - **Responsive layout** — per-core CPU stats are laid out in multiple columns based on terminal width.
 - **Non-blocking sampling** — system data is collected on background threads, so the UI stays responsive.
 
@@ -74,23 +74,28 @@ or `Esc`.
 
 | Key        | Action                                       |
 | ---------- | -------------------------------------------- |
-| `H`        | Focus the Temperatures panel (left)          |
-| `L`        | Focus the Processes panel (right)            |
+| `K`        | Focus the Processes panel                    |
+| `J`        | Focus the Disks panel (from Processes)       |
+| `H`        | Focus the Temperatures panel (from Disks)    |
+| `L`        | Focus the Disks panel (from Temperatures)    |
 | `h`, `?`   | Show / hide the help panel                   |
 | `q`, `Esc` | Quit (or close the current panel)            |
 | `k`, `↑`   | Select the previous row in the focused panel |
 | `j`, `↓`   | Select the next row in the focused panel     |
 | `g`, `←`   | Select the first row in the focused panel    |
 | `G`, `→`   | Select the last row in the focused panel     |
-| `K`        | Kill the selected process                    |
+| `Alt + D`  | Kill the selected process                    |
 | `/`        | Filter processes                             |
 | `Esc`      | Cancel the filter input                      |
 | `Enter`    | Confirm the filter                           |
+| `Alt + r`  | Reset sorting for the focused panel          |
 
 Navigation wraps within the focused panel: pressing `j` on the last row jumps to
-the first one, and `k` on the first row jumps to the last one. `K` and `/`
-always act on the process list, even while the Temperatures panel is focused;
-filtering is available for processes only.
+the first one, and `k` on the first row jumps to the last one. `/` always acts on
+the process list, even while another panel is focused; filtering is available
+for processes only. `Alt + D` kills the selected process while the Processes
+panel is focused; on the Disks panel the same shortcut sorts by read. The help
+panel scrolls with `j`/`k` (and `g`/`G` for the top and bottom).
 
 Process sorting (while the Processes panel is focused):
 
@@ -111,17 +116,31 @@ Temperature sorting (while the Temperatures panel is focused):
 | `Alt + s` | Sort by sensor      |
 | `Alt + t` | Sort by temperature |
 
+Disk sorting (while the Disks panel is focused):
+
+| Key       | Action                  |
+| --------- | ----------------------- |
+| `Alt + n` | Sort by name            |
+| `Alt + m` | Sort by mount point     |
+| `Alt + u` | Sort by used space      |
+| `Alt + a` | Sort by available space |
+| `Alt + t` | Sort by total space     |
+| `Alt + d` | Sort by read            |
+| `Alt + w` | Sort by write           |
+
 Selecting a column sorts in ascending order by default; hold `Shift` while
 pressing the shortcut (e.g. `Shift + Alt + c`) to sort in descending order.
-`Alt + t` is contextual: it sorts processes by thread count and temperatures by
-temperature value. `Alt + r` resets sorting for the focused panel.
+`Alt + t` is contextual: it sorts processes by thread count, temperatures by
+temperature value, and disks by total space. `Alt + r` resets sorting for the
+focused panel.
 
 Process sorting is applied to the filtered process list, and the active column
 is marked with an arrow in the process table header (`(exe)` is shown when
-sorting by executable path). Temperature sorting is applied immediately and is
-marked with an arrow in the temperature table header. The selected sensor stays
-selected across refreshes and sorting, and temperatures are sorted by sensor name
-in ascending order by default.
+sorting by executable path). Temperature and disk sorting are applied
+immediately, and the active column is marked with an arrow in the corresponding
+table header. The selected sensor or disk stays selected across refreshes and
+sorting; disks are matched by mount point. Temperatures are sorted by sensor
+name and disks by name in ascending order by default.
 
 Inside the kill confirmation dialog:
 
@@ -159,11 +178,13 @@ The screen is divided into four rows:
    highlighted only while the panel is focused. The disks usage panel lists each
    filesystem with `Name`, `Mount Point`, `Used`, `Available`, `Available %`,
    `Total`, and `R/W` columns, and the row height adapts to the number of
-   entries.
+   entries. The disks panel is selectable and its header marks the active sort
+   column with an arrow.
 
-Only the focused panel receives navigation and sorting shortcuts. Use `H` to
-focus the Temperatures panel and `L` to focus the Processes panel; the selected
-row is highlighted in the focused panel. The network and disks panels are
+Only the focused panel receives navigation and sorting shortcuts. Use `K` to
+focus the Processes panel, `J` to move from Processes to Disks, `H` to move from
+Disks to Temperatures, and `L` to move from Temperatures back to Disks. The
+selected row is highlighted in the focused panel. The network panel is
 informational only.
 
 > On Windows, available memory is always equal to free memory, so the Available
@@ -173,10 +194,12 @@ informational only.
 
 Additional overlays:
 
-- **Help panel** (`h` / `?`) — static panel with **General** keys and **Sorting**
-  shortcuts, split into **Processes** and **Temperatures** sections; close it
+- **Help panel** (`h` / `?`) — scrollable panel with **General** keys and
+  **Sorting** shortcuts, split into **Processes**, **Temperatures**, and **Disks**
+  sections. Scroll with `j`/`k` (or `g`/`G` for the top and bottom) and close it
   with `h`, `?`, `q`, or `Esc`.
-- **Kill confirmation** (`K`) — asks for confirmation before sending the signal.
+- **Kill confirmation** (`Alt + D`) — asks for confirmation before sending the
+  signal.
 - **Error toast** — appears in the top-right corner for 3 seconds if a process
   cannot be killed (e.g. insufficient permissions).
 - **Filter input** (`/`) — filters processes by name or executable path and

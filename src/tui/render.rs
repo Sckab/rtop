@@ -55,8 +55,10 @@ impl crate::app::App {
         self.render_temperatures(temperatures_area, buf);
         self.render_disks_usage(disks_area, buf);
 
-        match &self.state.mode {
-            Mode::Help => super::help::render_help_panel(self.keys.clone(), area, buf),
+        match &mut self.state.mode {
+            Mode::Help { scroll } => {
+                super::help::render_help_panel(self.keys.clone(), area, buf, scroll)
+            }
             Mode::ConfirmKill { request } => {
                 super::popups::render_kill_confirmation(&request.name, &request.pid, area, buf)
             }

@@ -10,7 +10,9 @@ use crate::system::process::KillRequest;
 pub enum Mode {
     #[default]
     Normal,
-    Help,
+    Help {
+        scroll: usize,
+    },
     Search {
         text_area: ratatui_textarea::TextArea<'static>,
     },

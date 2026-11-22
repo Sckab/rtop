@@ -123,7 +123,9 @@ impl crate::app::App {
     pub(super) fn handle_normal(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Char('q') | KeyCode::Esc => self.quit = true,
-            KeyCode::Char('h') | KeyCode::Char('?') => self.state.mode = Mode::Help,
+            KeyCode::Char('h') | KeyCode::Char('?') => {
+                self.state.mode = Mode::Help { scroll: 0 };
+            }
             KeyCode::Char('/') => {
                 let mut text_area = TextArea::new(vec![
                     self.processes_state

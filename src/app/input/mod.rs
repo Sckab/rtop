@@ -19,7 +19,15 @@ impl super::App {
                 }
                 _ => {}
             },
-            Mode::Help => match key.code {
+            Mode::Help { scroll } => match key.code {
+                KeyCode::Char('j') | KeyCode::Down => {
+                    *scroll = (*scroll).saturating_add(1);
+                }
+                KeyCode::Char('k') | KeyCode::Up => {
+                    *scroll = (*scroll).saturating_sub(1);
+                }
+                KeyCode::Char('g') | KeyCode::Home => *scroll = 0,
+                KeyCode::Char('G') | KeyCode::End => *scroll = usize::MAX,
                 KeyCode::Char('h') | KeyCode::Char('?') | KeyCode::Char('q') | KeyCode::Esc => {
                     self.state.mode = Mode::Normal;
                 }

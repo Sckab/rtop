@@ -20,6 +20,7 @@ pub struct Keys {
     pub general: Vec<Key>,
     pub sorting_processes: Vec<Key>,
     pub sorting_temperatures: Vec<Key>,
+    pub sorting_disks: Vec<Key>,
 }
 
 impl Keys {
@@ -27,16 +28,18 @@ impl Keys {
         let general = vec![
             Key::new("h", "?", "Shows this help panel"),
             Key::new("q", "Esc", "Quit the application"),
-            Key::new("k", "Up", "Select previous process"),
-            Key::new("j", "Down", "Select next process"),
-            Key::new("g", "Left", "Select first process"),
-            Key::new("G", "Right", "Select last process"),
-            Key::new("D", "", "Kill selected process"),
+            Key::new("k", "Up", "Select previous row"),
+            Key::new("j", "Down", "Select next row"),
+            Key::new("g", "Left", "Select first row"),
+            Key::new("G", "Right", "Select last row"),
+            Key::new("K", "", "Focus the Processes panel"),
+            Key::new("J", "", "Focus the Disks panel (from Processes)"),
+            Key::new("H", "", "Focus the Temperatures panel (from Disks)"),
+            Key::new("L", "", "Focus the Disks panel (from Temperatures)"),
+            Key::new("Alt + D", "", "Kill selected process (Processes panel)"),
             Key::new("/", "", "Filter processes"),
             Key::new("Esc", "", "Cancel the filter input"),
             Key::new("Enter", "", "Confirm the filter"),
-            Key::new("K", "", "Focus the temperature panel"),
-            Key::new("J", "", "Focus the processes panel"),
             Key::new("Alt + r", "", "Reset sorting"),
         ];
 
@@ -55,10 +58,21 @@ impl Keys {
             Key::new("Alt + t", "", "Sort by temperature"),
         ];
 
+        let sorting_disks = vec![
+            Key::new("Alt + n", "", "Sort by name"),
+            Key::new("Alt + m", "", "Sort by mount point"),
+            Key::new("Alt + u", "", "Sort by used space"),
+            Key::new("Alt + a", "", "Sort by available space"),
+            Key::new("Alt + t", "", "Sort by total space"),
+            Key::new("Alt + d", "", "Sort by read"),
+            Key::new("Alt + w", "", "Sort by write"),
+        ];
+
         Self {
             general,
             sorting_processes,
             sorting_temperatures,
+            sorting_disks,
         }
     }
 }

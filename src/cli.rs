@@ -18,4 +18,7 @@ const CLI_STYLING: clap::builder::styling::Styles = clap::builder::styling::Styl
 pub struct Cli {
     #[arg(short, long, default_value_os_t = theme::get_default_path())]
     pub theme_file: PathBuf,
+
+    #[arg(short, long)]
+    pub print_theme: bool,
 }

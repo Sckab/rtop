@@ -13,7 +13,7 @@ impl crate::app::App {
         let user_at_host = Span::raw(self.system_info.user_name.as_str());
         let at = Span::raw("@").fg(self.theme.error).bold();
         let host = Span::raw(self.system_info.host_name.as_str()).fg(self.theme.secondary);
-        let separator = Span::raw(" | ").fg(self.theme.primary.to_ratatui_color());
+        let separator = Span::raw(" | ").fg(self.theme.primary);
         let os_name = Span::raw(self.system_info.os_name.as_str());
 
         Paragraph::new(Line::from(vec![user_at_host, at, host, separator, os_name]))

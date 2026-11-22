@@ -26,6 +26,12 @@ fn main() -> anyhow::Result<()> {
         Err(error) => return Err(error.into()),
     };
 
+    if args.print_theme {
+        theme.print();
+
+        return Ok(());
+    }
+
     ratatui::run(|terminal| {
         app::App::new().run(
             theme,

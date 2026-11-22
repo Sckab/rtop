@@ -14,25 +14,25 @@ use crate::{
 impl crate::app::App {
     fn get_disks_usage_header(&self) -> Vec<String> {
         vec![
-            format!("Name{}", self.io.disks.sort.get_arrow(DisksSortType::Name)),
+            format!("Name{}", self.sortings.disks.get_arrow(DisksSortType::Name)),
             format!(
                 "Mount Point{}",
-                self.io.disks.sort.get_arrow(DisksSortType::MountPoint)
+                self.sortings.disks.get_arrow(DisksSortType::MountPoint)
             ),
-            format!("Used{}", self.io.disks.sort.get_arrow(DisksSortType::Used)),
+            format!("Used{}", self.sortings.disks.get_arrow(DisksSortType::Used)),
             format!(
                 "Available{}",
-                self.io.disks.sort.get_arrow(DisksSortType::Available)
+                self.sortings.disks.get_arrow(DisksSortType::Available)
             ),
-            format!("Available %"),
+            "Available %".to_string(),
             format!(
                 "Total{}",
-                self.io.disks.sort.get_arrow(DisksSortType::Total)
+                self.sortings.disks.get_arrow(DisksSortType::Total)
             ),
             format!(
                 "R{}/W{}",
-                self.io.disks.sort.get_arrow(DisksSortType::Read),
-                self.io.disks.sort.get_arrow(DisksSortType::Write)
+                self.sortings.disks.get_arrow(DisksSortType::Read),
+                self.sortings.disks.get_arrow(DisksSortType::Write)
             ),
         ]
     }

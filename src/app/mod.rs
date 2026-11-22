@@ -8,7 +8,7 @@ use crate::{
         SystemInfo, SystemStats,
         io::{Io, disks::Disk},
         process::{KillRequest, KillResponse, Process, ProcessesState},
-        sorting::DisksSort,
+        sorting::Sortings,
         temperature::{Temperature, TemperatureState},
         workers,
     },
@@ -31,6 +31,7 @@ pub struct App {
     pub keys: keymap::Keys,
     pub processes_state: ProcessesState,
     pub temperature_state: TemperatureState,
+    pub sortings: Sortings,
     pub io: Io,
     pub size_formatter: Box<dyn Fn(u64) -> String>,
 }
@@ -53,6 +54,7 @@ impl App {
             keys: keymap::Keys::new(),
             processes_state: ProcessesState::default(),
             temperature_state: TemperatureState::default(),
+            sortings: Sortings::default(),
             io: Io::default(),
             size_formatter: Box::new(humansize::make_format(humansize::DECIMAL)),
         }
@@ -73,8 +75,6 @@ impl App {
         let (tx_cpu_ram_width, rx_cpu_ram_width) = std::sync::mpsc::channel::<usize>();
         let (tx_network_width, rx_network_width) = std::sync::mpsc::channel::<usize>();
 
-        let (tx_disks_sorting, rx_disks_sorting) = std::sync::mpsc::channel::<DisksSort>();
-
         let terminal_width = terminal.size()?.width;
         let _ = tx_cpu_ram_width.send((terminal_width / 2) as usize);
         let _ =
@@ -84,7 +84,7 @@ impl App {
         let (rx_processes, rx_msg_kill) =
             workers::processes::create_worker(rx_kill, process_system, users);
         let rx_temperatures = workers::temperatures::create_worker(components);
-        let rx_io = workers::io::create_worker(rx_network_width, rx_disks_sorting, network, disks);
+        let rx_io = workers::io::create_worker(rx_network_width, network, disks);
 
         let mut dirty = true;
 
@@ -159,8 +159,6 @@ impl App {
                 terminal.draw(|frame| self.render(frame.area(), frame.buffer_mut()))?;
                 dirty = false;
             }
-
-            let _ = tx_disks_sorting.send(self.io.disks.sort.clone());
         }
 
         Ok(())
@@ -189,8 +187,8 @@ impl App {
             .and_then(|index| self.temperature_state.temperatures.get(index))
             .map(|temperature| temperature.sensor.clone());
 
-        self.temperature_state
-            .sort
+        self.sortings
+            .temperatures
             .sort_temperatures(&mut self.temperature_state.temperatures);
 
         let selected = selected_sensor
@@ -206,7 +204,7 @@ impl App {
     }
 
     fn update_temperatures(&self, temepratures: &mut [Temperature]) -> Option<usize> {
-        self.temperature_state.sort.sort_temperatures(temepratures);
+        self.sortings.temperatures.sort_temperatures(temepratures);
 
         let selected_temp = self
             .tables
@@ -236,8 +234,43 @@ impl App {
             })
     }
 
+    fn resort_disks(&mut self) {
+        let selected_mount = self
+            .tables
+            .disks_table
+            .selected()
+            .and_then(|index| self.io.disks.disks.get(index))
+            .map(|disk| disk.mount.clone());
+
+        self.sortings.disks.sort_disks(&mut self.io.disks.disks);
+
+        let selected = selected_mount
+            .and_then(|mount| {
+                self.io
+                    .disks
+                    .disks
+                    .iter()
+                    .position(|disk| disk.mount == mount)
+            })
+            .or_else(|| {
+                if self.io.disks.disks.is_empty() {
+                    None
+                } else {
+                    Some(
+                        self.tables
+                            .disks_table
+                            .selected()
+                            .unwrap_or(0)
+                            .min(self.io.disks.disks.len() - 1),
+                    )
+                }
+            });
+
+        self.tables.disks_table.select(selected);
+    }
+
     fn update_disks(&self, disks: &mut [Disk]) -> Option<usize> {
-        self.io.disks.sort.sort_disks(disks);
+        self.sortings.disks.sort_disks(disks);
 
         let selected_disk = self
             .tables

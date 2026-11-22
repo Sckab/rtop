@@ -60,7 +60,7 @@ impl crate::app::App {
 
     pub fn render_processes(&mut self, area: Rect, buf: &mut Buffer) {
         let query = self.current_query();
-        let sort = &self.processes_state.sort;
+        let sort = &self.sortings.processes;
 
         let filtered_processes =
             Self::filtered_and_sorted_processes(query, &self.processes_state.processes, sort);
@@ -146,7 +146,7 @@ impl crate::app::App {
                     Constraint::Length(user_width as u16),
                     Constraint::Length(threads_width as u16),
                     Constraint::Length(
-                        if matches!(self.processes_state.sort.sort_type, ProcessSortType::Cpu) {
+                        if matches!(self.sortings.processes.sort_type, ProcessSortType::Cpu) {
                             7
                         } else {
                             6

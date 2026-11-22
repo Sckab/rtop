@@ -20,7 +20,6 @@ pub struct Process {
 
 #[derive(Default, Clone)]
 pub struct ProcessesState {
-    pub sort: super::sorting::ProcessSort,
     pub process_query: Option<String>,
     pub pending_kill: Option<KillRequest>,
     pub processes: Vec<Process>,

@@ -16,28 +16,28 @@ impl crate::app::App {
         match self.state.selected_panel {
             SelectedPanel::Processes => match key {
                 KeyCode::Char('p') | KeyCode::Char('P') => {
-                    self.processes_state.sort = ProcessSort::new(ProcessSortType::Pid, shift);
+                    self.sortings.processes = ProcessSort::new(ProcessSortType::Pid, shift);
                 }
                 KeyCode::Char('n') | KeyCode::Char('N') => {
-                    self.processes_state.sort = ProcessSort::new(ProcessSortType::Name, shift);
+                    self.sortings.processes = ProcessSort::new(ProcessSortType::Name, shift);
                 }
                 KeyCode::Char('e') | KeyCode::Char('E') => {
-                    self.processes_state.sort = ProcessSort::new(ProcessSortType::Exe, shift);
+                    self.sortings.processes = ProcessSort::new(ProcessSortType::Exe, shift);
                 }
                 KeyCode::Char('u') | KeyCode::Char('U') => {
-                    self.processes_state.sort = ProcessSort::new(ProcessSortType::User, shift);
+                    self.sortings.processes = ProcessSort::new(ProcessSortType::User, shift);
                 }
                 KeyCode::Char('t') | KeyCode::Char('T') => {
-                    self.processes_state.sort = ProcessSort::new(ProcessSortType::Thread, shift);
+                    self.sortings.processes = ProcessSort::new(ProcessSortType::Thread, shift);
                 }
                 KeyCode::Char('c') | KeyCode::Char('C') => {
-                    self.processes_state.sort = ProcessSort::new(ProcessSortType::Cpu, shift);
+                    self.sortings.processes = ProcessSort::new(ProcessSortType::Cpu, shift);
                 }
                 KeyCode::Char('m') | KeyCode::Char('M') => {
-                    self.processes_state.sort = ProcessSort::new(ProcessSortType::Memory, shift);
+                    self.sortings.processes = ProcessSort::new(ProcessSortType::Memory, shift);
                 }
                 KeyCode::Char('r') => {
-                    self.processes_state.sort = ProcessSort::new(ProcessSortType::None, shift);
+                    self.sortings.processes = ProcessSort::new(ProcessSortType::None, shift);
                 }
                 KeyCode::Char('D') => {
                     if let Some(process) = self.selected_process() {
@@ -55,17 +55,17 @@ impl crate::app::App {
             SelectedPanel::Termperature => {
                 let changed = match key {
                     KeyCode::Char('s') | KeyCode::Char('S') => {
-                        self.temperature_state.sort =
+                        self.sortings.temperatures =
                             TemperatureSort::new(TemperatureSortType::Sensor, shift);
                         true
                     }
                     KeyCode::Char('t') | KeyCode::Char('T') => {
-                        self.temperature_state.sort =
+                        self.sortings.temperatures =
                             TemperatureSort::new(TemperatureSortType::Temperature, shift);
                         true
                     }
                     KeyCode::Char('r') => {
-                        self.temperature_state.sort =
+                        self.sortings.temperatures =
                             TemperatureSort::new(TemperatureSortType::None, shift);
                         true
                     }
@@ -76,33 +76,47 @@ impl crate::app::App {
                     self.resort_temperatures();
                 }
             }
-            SelectedPanel::DiskUsage => match key {
-                KeyCode::Char('n') | KeyCode::Char('N') => {
-                    self.io.disks.sort = DisksSort::new(DisksSortType::Name, shift);
+            SelectedPanel::DiskUsage => {
+                let changed = match key {
+                    KeyCode::Char('n') | KeyCode::Char('N') => {
+                        self.sortings.disks = DisksSort::new(DisksSortType::Name, shift);
+                        true
+                    }
+                    KeyCode::Char('m') | KeyCode::Char('M') => {
+                        self.sortings.disks = DisksSort::new(DisksSortType::MountPoint, shift);
+                        true
+                    }
+                    KeyCode::Char('u') | KeyCode::Char('U') => {
+                        self.sortings.disks = DisksSort::new(DisksSortType::Used, shift);
+                        true
+                    }
+                    KeyCode::Char('a') | KeyCode::Char('A') => {
+                        self.sortings.disks = DisksSort::new(DisksSortType::Available, shift);
+                        true
+                    }
+                    KeyCode::Char('t') | KeyCode::Char('T') => {
+                        self.sortings.disks = DisksSort::new(DisksSortType::Total, shift);
+                        true
+                    }
+                    KeyCode::Char('d') | KeyCode::Char('D') => {
+                        self.sortings.disks = DisksSort::new(DisksSortType::Read, shift);
+                        true
+                    }
+                    KeyCode::Char('w') | KeyCode::Char('W') => {
+                        self.sortings.disks = DisksSort::new(DisksSortType::Write, shift);
+                        true
+                    }
+                    KeyCode::Char('r') => {
+                        self.sortings.disks = DisksSort::new(DisksSortType::None, shift);
+                        true
+                    }
+                    _ => false,
+                };
+
+                if changed {
+                    self.resort_disks();
                 }
-                KeyCode::Char('m') | KeyCode::Char('M') => {
-                    self.io.disks.sort = DisksSort::new(DisksSortType::MountPoint, shift);
-                }
-                KeyCode::Char('u') | KeyCode::Char('U') => {
-                    self.io.disks.sort = DisksSort::new(DisksSortType::Used, shift);
-                }
-                KeyCode::Char('a') | KeyCode::Char('A') => {
-                    self.io.disks.sort = DisksSort::new(DisksSortType::Available, shift);
-                }
-                KeyCode::Char('t') | KeyCode::Char('T') => {
-                    self.io.disks.sort = DisksSort::new(DisksSortType::Total, shift);
-                }
-                KeyCode::Char('d') | KeyCode::Char('D') => {
-                    self.io.disks.sort = DisksSort::new(DisksSortType::Read, shift);
-                }
-                KeyCode::Char('w') | KeyCode::Char('W') => {
-                    self.io.disks.sort = DisksSort::new(DisksSortType::Write, shift);
-                }
-                KeyCode::Char('r') => {
-                    self.io.disks.sort = DisksSort::new(DisksSortType::None, shift);
-                }
-                _ => {}
-            },
+            }
         }
     }
 
@@ -124,18 +138,21 @@ impl crate::app::App {
                 self.state.mode = Mode::Search { text_area };
             }
             KeyCode::Char('K') => self.state.selected_panel = SelectedPanel::Processes,
-            KeyCode::Char('J') => match self.state.selected_panel {
-                SelectedPanel::Processes => self.state.selected_panel = SelectedPanel::DiskUsage,
-                _ => {}
-            },
-            KeyCode::Char('H') => match self.state.selected_panel {
-                SelectedPanel::DiskUsage => self.state.selected_panel = SelectedPanel::Termperature,
-                _ => {}
-            },
-            KeyCode::Char('L') => match self.state.selected_panel {
-                SelectedPanel::Termperature => self.state.selected_panel = SelectedPanel::DiskUsage,
-                _ => {}
-            },
+            KeyCode::Char('J') => {
+                if let SelectedPanel::Processes = self.state.selected_panel {
+                    self.state.selected_panel = SelectedPanel::DiskUsage;
+                }
+            }
+            KeyCode::Char('H') => {
+                if let SelectedPanel::DiskUsage = self.state.selected_panel {
+                    self.state.selected_panel = SelectedPanel::Termperature;
+                }
+            }
+            KeyCode::Char('L') => {
+                if let SelectedPanel::Termperature = self.state.selected_panel {
+                    self.state.selected_panel = SelectedPanel::DiskUsage;
+                }
+            }
             code => {
                 if key.modifiers.contains(KeyModifiers::ALT) {
                     self.handle_panel_keys(code, key.modifiers);

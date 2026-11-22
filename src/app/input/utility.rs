@@ -10,7 +10,7 @@ impl crate::app::App {
         Self::filtered_and_sorted_processes(
             self.current_query(),
             &self.processes_state.processes,
-            &self.processes_state.sort,
+            &self.sortings.processes,
         )
         .get(index)
         .copied()

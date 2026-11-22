@@ -5,12 +5,10 @@ use regex::Regex;
 use crate::system::{
     history,
     io::{self, Io, disks, network},
-    sorting::DisksSort,
 };
 
 pub fn create_worker(
     rx_width: Receiver<usize>,
-    rx_sorting: Receiver<DisksSort>,
     mut network_info: sysinfo::Networks,
     mut disks_info: sysinfo::Disks,
 ) -> Receiver<Io> {
@@ -21,8 +19,6 @@ pub fn create_worker(
         let mut upload_history = history::History::new();
 
         let mut width = 0;
-
-        let mut disks_sorting = DisksSort::default();
 
         let excluded_interfaces: Vec<Regex> = io::EXCLUDED_NETWORK_INTERFACES
             .iter()
@@ -43,10 +39,6 @@ pub fn create_worker(
 
             while let Ok(w) = rx_width.try_recv() {
                 width = w;
-            }
-
-            while let Ok(s) = rx_sorting.try_recv() {
-                disks_sorting = s;
             }
 
             let mut disks = vec![];
@@ -100,10 +92,7 @@ pub fn create_worker(
             }
 
             let io = Io {
-                disks: disks::Disks {
-                    disks,
-                    sort: disks_sorting.clone(),
-                },
+                disks: disks::Disks { disks },
                 network: network::Network {
                     total_download,
                     total_upload,

@@ -30,8 +30,8 @@ impl crate::app::App {
             .max(
                 format!(
                     "Sensor{}",
-                    self.temperature_state
-                        .sort
+                    self.sortings
+                        .temperatures
                         .get_arrow(TemperatureSortType::Sensor)
                 )
                 .cell_width(),
@@ -47,8 +47,8 @@ impl crate::app::App {
             .max(
                 format!(
                     "Temperature{}",
-                    self.temperature_state
-                        .sort
+                    self.sortings
+                        .temperatures
                         .get_arrow(TemperatureSortType::Temperature)
                 )
                 .cell_width(),
@@ -82,14 +82,14 @@ impl crate::app::App {
         let header = [
             format!(
                 "Sensor{}",
-                self.temperature_state
-                    .sort
+                self.sortings
+                    .temperatures
                     .get_arrow(TemperatureSortType::Sensor)
             ),
             format!(
                 "Temperature{}",
-                self.temperature_state
-                    .sort
+                self.sortings
+                    .temperatures
                     .get_arrow(TemperatureSortType::Temperature)
             ),
         ];

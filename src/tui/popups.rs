@@ -3,12 +3,20 @@ use std::ffi::OsStr;
 use ratatui::{
     buffer::{Buffer, CellWidth},
     layout::{Alignment, Constraint, Layout, Rect},
-    style::{Color, Stylize},
+    style::Stylize,
     text::Span,
     widgets::{Clear, Paragraph, Widget},
 };
 
-pub fn render_kill_confirmation(name: &OsStr, pid: &u32, area: Rect, buf: &mut Buffer) {
+use crate::theme::Theme;
+
+pub fn render_kill_confirmation(
+    theme: &Theme,
+    name: &OsStr,
+    pid: &u32,
+    area: Rect,
+    buf: &mut Buffer,
+) {
     let main_text = format!("Are you sure to kill \"{}\"?", name.display());
 
     let area = area.centered(
@@ -18,7 +26,7 @@ pub fn render_kill_confirmation(name: &OsStr, pid: &u32, area: Rect, buf: &mut B
 
     Clear.render(area, buf);
 
-    let popup_area = super::widgets::get_bordered_block(" Confirm ", false, true, area, buf);
+    let popup_area = super::widgets::get_bordered_block(theme, " Confirm ", false, true, area, buf);
 
     let layout = Layout::vertical([
         Constraint::Length(1),
@@ -30,15 +38,15 @@ pub fn render_kill_confirmation(name: &OsStr, pid: &u32, area: Rect, buf: &mut B
     Paragraph::new(main_text).render(layout[0], buf);
     Paragraph::new(format!("PID: {pid}")).render(layout[1], buf);
     Paragraph::new(
-        Span::raw("[Y] Yes").fg(Color::Red)
+        Span::raw("[Y] Yes").fg(theme.error)
             + Span::raw(" ".repeat(4))
-            + Span::raw("[N] No").fg(Color::Green),
+            + Span::raw("[N] No").fg(theme.primary),
     )
     .alignment(Alignment::Center)
     .render(layout[2], buf);
 }
 
-pub fn render_toast(message: &str, area: Rect, buf: &mut Buffer) {
+pub fn render_toast(theme: &Theme, message: &str, area: Rect, buf: &mut Buffer) {
     if area.width < 5 || area.height < 4 {
         return;
     }
@@ -56,7 +64,8 @@ pub fn render_toast(message: &str, area: Rect, buf: &mut Buffer) {
 
     Clear.render(toast_area, buf);
 
-    let inner_area = super::widgets::get_bordered_block(" Error ", true, true, toast_area, buf);
+    let inner_area =
+        super::widgets::get_bordered_block(theme, " Error ", true, true, toast_area, buf);
 
     Paragraph::new(message).render(inner_area, buf);
 }

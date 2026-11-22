@@ -1,7 +1,7 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Rect},
-    style::{Color, Stylize},
+    style::Stylize,
     text::Span,
     widgets::{Cell, Row, StatefulWidget, Table},
 };
@@ -85,8 +85,14 @@ impl crate::app::App {
             title
         };
 
-        let area =
-            super::widgets::get_bordered_block(format!(" {title} "), false, false, area, buf);
+        let area = super::widgets::get_bordered_block(
+            &self.theme,
+            format!(" {title} "),
+            false,
+            false,
+            area,
+            buf,
+        );
 
         let table_columns = [
             format!("PID{}", sort.get_arrow(ProcessSortType::Pid)),
@@ -105,7 +111,7 @@ impl crate::app::App {
             Cell::new(table_columns[4].clone()),
             Cell::new(table_columns[5].clone()),
         ])
-        .fg(Color::Green);
+        .fg(self.theme.table_headers);
 
         let mut pid_width = table_columns[0].len();
         let mut name_width = table_columns[1].len();
@@ -157,10 +163,10 @@ impl crate::app::App {
             )
             .column_spacing(2)
             .header(header)
-            .row_highlight_style(get_selected_style(matches!(
-                &self.state.selected_panel,
-                SelectedPanel::Processes
-            ))),
+            .row_highlight_style(get_selected_style(
+                &self.theme,
+                matches!(&self.state.selected_panel, SelectedPanel::Processes),
+            )),
             area,
             buf,
             &mut self.tables.process_table,

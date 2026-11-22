@@ -36,7 +36,14 @@ impl crate::app::App {
     }
 
     pub fn render_memory_usage(&self, area: Rect, buf: &mut Buffer) {
-        let area = super::widgets::get_bordered_block(" Memory Usage ", false, false, area, buf);
+        let area = super::widgets::get_bordered_block(
+            &self.theme,
+            " Memory Usage ",
+            false,
+            false,
+            area,
+            buf,
+        );
 
         // On Windows, available memory is always equal to free memory, so the
         // Available row is omitted and its space is given to the graph.
@@ -61,14 +68,8 @@ impl crate::app::App {
 
         let layout = Layout::vertical(constraints).split(area);
 
-        const USED_COLOR: Color = Color::Red;
-        const FREE_COLOR: Color = Color::Green;
-
-        #[cfg(not(windows))]
-        const AVAILABLE_COLOR: Color = Color::Yellow;
-
-        let used = Span::raw("Used: ").fg(USED_COLOR);
-        let free = Span::raw("Free: ").fg(FREE_COLOR);
+        let used = Span::raw("Used: ").fg(self.theme.memory_used);
+        let free = Span::raw("Free: ").fg(self.theme.memory_free);
 
         Paragraph::new(used + (self.size_formatter)(self.stats.memory_used.value).into())
             .render(layout[0], buf);
@@ -77,7 +78,7 @@ impl crate::app::App {
 
         #[cfg(not(windows))]
         {
-            let available = Span::raw("Available: ").fg(AVAILABLE_COLOR);
+            let available = Span::raw("Available: ").fg(self.theme.memory_available);
 
             Paragraph::new(
                 available + (self.size_formatter)(self.stats.memory_available.value).into(),
@@ -99,7 +100,7 @@ impl crate::app::App {
         let mut data = vec![self.get_dataset_memory(
             width,
             &mut free_points,
-            FREE_COLOR,
+            self.theme.memory_free.into(),
             &self.stats.memory_free,
         )];
 
@@ -107,14 +108,14 @@ impl crate::app::App {
         data.push(self.get_dataset_memory(
             width,
             &mut available_points,
-            AVAILABLE_COLOR,
+            self.theme.memory_available.into(),
             &self.stats.memory_available,
         ));
 
         data.push(self.get_dataset_memory(
             width,
             &mut used_points,
-            USED_COLOR,
+            self.theme.memory_used.into(),
             &self.stats.memory_used,
         ));
 
@@ -123,7 +124,7 @@ impl crate::app::App {
             .y_axis(y_axis)
             .render(layout[CHART_ROW], buf);
 
-        let title = Span::raw("Total: ").fg(Color::Green);
+        let title = Span::raw("Total: ").fg(self.theme.secondary);
         let size_formatted = Span::raw((self.size_formatter)(self.stats.memory_total.value));
 
         Paragraph::new(title + size_formatted).render(layout[TOTAL_ROW], buf);

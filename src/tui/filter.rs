@@ -4,7 +4,7 @@ use ratatui::{
     widgets::{Clear, Widget},
 };
 
-use crate::app::state::Mode;
+use crate::{app::state::Mode, theme::Theme};
 
 impl crate::app::App {
     pub fn current_query(&self) -> Option<&str> {
@@ -16,6 +16,7 @@ impl crate::app::App {
 }
 
 pub fn render_process_filter_input(
+    theme: &Theme,
     text_area: &ratatui_textarea::TextArea,
     area: Rect,
     buf: &mut Buffer,
@@ -32,7 +33,7 @@ pub fn render_process_filter_input(
 
     Clear.render(area, buf);
 
-    let inner_area = super::widgets::get_bordered_block(title, false, true, area, buf);
+    let inner_area = super::widgets::get_bordered_block(theme, title, false, true, area, buf);
 
     text_area.render(inner_area, buf);
 }

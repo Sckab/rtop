@@ -1,7 +1,7 @@
 use ratatui::{
     buffer::{Buffer, CellWidth},
     layout::{Constraint, Rect},
-    style::{Color, Stylize},
+    style::Stylize,
     widgets::{Row, StatefulWidget, Table},
 };
 
@@ -69,6 +69,7 @@ impl crate::app::App {
         };
 
         let innter_area = get_bordered_block(
+            &self.theme,
             format!(
                 " Temperatures ({selected}/{}) ",
                 self.temperature_state.temperatures.len()
@@ -114,11 +115,11 @@ impl crate::app::App {
             [Constraint::Length(maximum_width), Constraint::Fill(1)],
         )
         .column_spacing(2)
-        .header(Row::new(header).fg(Color::Green))
-        .row_highlight_style(get_selected_style(matches!(
-            &self.state.selected_panel,
-            SelectedPanel::Termperature
-        )))
+        .header(Row::new(header).fg(self.theme.table_headers))
+        .row_highlight_style(get_selected_style(
+            &self.theme,
+            matches!(&self.state.selected_panel, SelectedPanel::Termperature),
+        ))
         .render(innter_area, buf, &mut self.tables.temperature_table);
     }
 }

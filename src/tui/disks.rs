@@ -1,7 +1,7 @@
 use ratatui::{
     buffer::{Buffer, CellWidth},
     layout::Rect,
-    style::{Color, Stylize},
+    style::Stylize,
     widgets::{Row, StatefulWidget, Table},
 };
 
@@ -83,6 +83,7 @@ impl crate::app::App {
         };
 
         let area = super::widgets::get_bordered_block(
+            &self.theme,
             format!(" Disks ({selected}/{}) ", self.io.disks.disks.len()),
             false,
             false,
@@ -100,11 +101,11 @@ impl crate::app::App {
 
         Table::new(rows, self.disks_usage_widths())
             .column_spacing(2)
-            .header(Row::new(self.get_disks_usage_header()).fg(Color::Green))
-            .row_highlight_style(get_selected_style(matches!(
-                &self.state.selected_panel,
-                SelectedPanel::DiskUsage
-            )))
+            .header(Row::new(self.get_disks_usage_header()).fg(self.theme.table_headers))
+            .row_highlight_style(get_selected_style(
+                &self.theme,
+                matches!(&self.state.selected_panel, SelectedPanel::DiskUsage),
+            ))
             .render(area, buf, &mut self.tables.disks_table);
     }
 }

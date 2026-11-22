@@ -1,7 +1,7 @@
 use ratatui::{
     buffer::{Buffer, CellWidth},
     layout::{Constraint, Layout, Rect},
-    style::{Color, Style},
+    style::{Color, Style, Stylize},
     symbols::scrollbar::VERTICAL,
     text::Span,
     widgets::{
@@ -9,7 +9,11 @@ use ratatui::{
     },
 };
 
-use crate::{app::keymap, tui::widgets::get_bordered_block};
+use crate::{
+    app::keymap,
+    theme::{Theme, color},
+    tui::widgets::get_bordered_block,
+};
 
 fn get_maximum_widths(keys: &[keymap::Key]) -> (u16, u16, u16) {
     let mut primary_width = "Primary".cell_width();
@@ -25,7 +29,13 @@ fn get_maximum_widths(keys: &[keymap::Key]) -> (u16, u16, u16) {
     (primary_width, secondary_width, description_width)
 }
 
-fn general_table(keys: Vec<keymap::Key>, spacing: u16, area: Rect, buf: &mut Buffer) {
+fn general_table(
+    header_color: color::Color,
+    keys: Vec<keymap::Key>,
+    spacing: u16,
+    area: Rect,
+    buf: &mut Buffer,
+) {
     let (primary_width, secondary_width, _) = get_maximum_widths(&keys);
 
     let rows = keys.iter().map(|key| {
@@ -41,9 +51,9 @@ fn general_table(keys: Vec<keymap::Key>, spacing: u16, area: Rect, buf: &mut Buf
     });
 
     let header = Row::new([
-        Span::raw("Primary").style(Style::default().fg(Color::Green)),
-        Span::raw("Secondary").style(Style::default().fg(Color::Green)),
-        Span::raw("Description").style(Style::default().fg(Color::Green)),
+        Span::raw("Primary").fg(header_color),
+        Span::raw("Secondary").fg(header_color),
+        Span::raw("Description").fg(header_color),
     ]);
 
     Table::new(
@@ -80,7 +90,13 @@ fn sorting_table(keys: Vec<keymap::Key>, spacing: u16, area: Rect, buf: &mut Buf
     .render(area, buf);
 }
 
-pub fn render_help_panel(keys: keymap::Keys, area: Rect, buf: &mut Buffer, scroll: &mut usize) {
+pub fn render_help_panel(
+    theme: &Theme,
+    keys: keymap::Keys,
+    area: Rect,
+    buf: &mut Buffer,
+    scroll: &mut usize,
+) {
     const COLUMN_SPACING: u16 = 2;
 
     let general_widths = get_maximum_widths(&keys.general);
@@ -131,7 +147,7 @@ pub fn render_help_panel(keys: keymap::Keys, area: Rect, buf: &mut Buffer, scrol
         " Help "
     };
 
-    let popup_area = get_bordered_block(title, false, true, area_centered, buf);
+    let popup_area = get_bordered_block(theme, title, false, true, area_centered, buf);
 
     // Render the full content off-screen, then copy only the visible rows into
     // the popup so the help can scroll without a `Paragraph`/`scroll` wrapper.
@@ -155,14 +171,20 @@ pub fn render_help_panel(keys: keymap::Keys, area: Rect, buf: &mut Buffer, scrol
     ])
     .split(content_area);
 
-    general_table(keys.general, COLUMN_SPACING, layout[0], &mut content_buf);
+    general_table(
+        theme.table_headers,
+        keys.general,
+        COLUMN_SPACING,
+        layout[0],
+        &mut content_buf,
+    );
 
     Paragraph::new(sorting_title)
-        .style(Style::default().fg(Color::Green))
+        .style(Style::default().fg(theme.table_headers.into()))
         .render(layout[1], &mut content_buf);
 
     Paragraph::new("Processes:")
-        .style(Style::default().fg(Color::Green))
+        .style(Style::default().fg(theme.table_headers.into()))
         .render(layout[2], &mut content_buf);
     sorting_table(
         keys.sorting_processes,
@@ -172,7 +194,7 @@ pub fn render_help_panel(keys: keymap::Keys, area: Rect, buf: &mut Buffer, scrol
     );
 
     Paragraph::new("Temperatures:")
-        .style(Style::default().fg(Color::Green))
+        .style(Style::default().fg(theme.table_headers.into()))
         .render(layout[4], &mut content_buf);
     sorting_table(
         keys.sorting_temperatures,
@@ -182,7 +204,7 @@ pub fn render_help_panel(keys: keymap::Keys, area: Rect, buf: &mut Buffer, scrol
     );
 
     Paragraph::new("Disks:")
-        .style(Style::default().fg(Color::Green))
+        .style(Style::default().fg(theme.table_headers.into()))
         .render(layout[6], &mut content_buf);
     sorting_table(
         keys.sorting_disks,
@@ -228,10 +250,10 @@ pub fn render_help_panel(keys: keymap::Keys, area: Rect, buf: &mut Buffer, scrol
 
         let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
             .symbols(VERTICAL)
-            .begin_style(Style::new().fg(Color::Green))
-            .end_style(Style::new().fg(Color::Green))
+            .begin_style(Style::new().fg(theme.primary.into()))
+            .end_style(Style::new().fg(theme.primary.into()))
             .track_style(Style::new().fg(Color::DarkGray))
-            .thumb_style(Style::new().fg(Color::Green));
+            .thumb_style(Style::new().fg(theme.primary.into()));
 
         ratatui::widgets::StatefulWidget::render(
             scrollbar,

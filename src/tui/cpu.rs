@@ -2,15 +2,16 @@ use human_units::si::{Frequency, Prefix};
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Constraint, Direction, HorizontalAlignment, Layout, Rect},
-    style::{Color, Style, Stylize},
+    style::{Style, Stylize},
     symbols::Marker,
     text::{Line, Span},
     widgets::{Axis, Cell, Chart, Dataset, GraphType, Paragraph, Row, Table, Widget},
 };
 
-use crate::system::cpu::Cpu;
+use crate::{system::cpu::Cpu, theme::Theme};
 
 fn render_cpu_table(
+    theme: &Theme,
     items: Vec<(String, String)>,
     spacing: usize,
     rows: usize,
@@ -47,7 +48,7 @@ fn render_cpu_table(
             let (name, usage) = &items[index];
 
             table_rows.push(Row::new([
-                Cell::from(name.as_str()).style(Style::default().fg(Color::Green)),
+                Cell::from(name.as_str()).style(Style::default().fg(theme.secondary.into())),
                 Cell::from(usage.as_str()),
             ]));
         }
@@ -64,7 +65,7 @@ fn render_cpu_table(
     }
 
     Paragraph::new(
-        Span::raw("Total: ").fg(Color::Green) + Span::raw(format!("{:.0}%", global_usage)),
+        Span::raw("Total: ").fg(theme.secondary) + Span::raw(format!("{:.0}%", global_usage)),
     )
     .render(total_area, buf);
 }
@@ -86,6 +87,7 @@ impl crate::app::App {
         let data = Dataset::default()
             .marker(Marker::Braille)
             .graph_type(GraphType::Line)
+            .fg(self.theme.cpu_graph)
             .data(&points);
 
         // The canvas maps to 2*plot_width - 1 dots: using W - 0.5,
@@ -95,7 +97,7 @@ impl crate::app::App {
         let y_axis = Axis::default()
             .labels(["0%", "50%", "100%"])
             .labels_alignment(HorizontalAlignment::Right)
-            .style(Style::default().fg(Color::Green))
+            .style(Style::default().fg(self.theme.primary.into()))
             .bounds([0.0, area.height as f64]);
 
         Chart::new(vec![data])
@@ -107,7 +109,8 @@ impl crate::app::App {
     pub fn render_cpu_usage(&self, area: Rect, buf: &mut Buffer) {
         let cpu_stats = &self.stats.cpu;
 
-        let inner_area = super::widgets::get_bordered_block(" CPU ", false, false, area, buf);
+        let inner_area =
+            super::widgets::get_bordered_block(&self.theme, " CPU ", false, false, area, buf);
 
         let mut items: Vec<(String, String)> = Vec::new();
 
@@ -149,7 +152,7 @@ impl crate::app::App {
         )
         .split(inner_area);
 
-        let cpu_brand = Span::raw(format!("{}: ", self.stats.cpu.brand)).fg(Color::Green);
+        let cpu_brand = Span::raw(format!("{}: ", self.stats.cpu.brand)).fg(self.theme.secondary);
         let frequency = Span::raw(
             Frequency::with_si_prefix(self.stats.cpu.frequency, Prefix::Mega)
                 .format_si()
@@ -159,7 +162,7 @@ impl crate::app::App {
         // sysinfo doesn't support the load average for windows
         #[cfg(not(windows))]
         let load_average = Line::from(vec![
-            Span::raw("Load Average:  ").fg(Color::Green),
+            Span::raw("Load Average:  ").fg(self.theme.secondary),
             Span::raw(self.stats.load_average.display()),
         ]);
 
@@ -184,6 +187,7 @@ impl crate::app::App {
             .render(right, buf);
 
         render_cpu_table(
+            &self.theme,
             items,
             spacing,
             rows,

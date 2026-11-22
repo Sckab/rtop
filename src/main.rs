@@ -3,6 +3,7 @@ use clap::Parser;
 mod app;
 mod cli;
 mod system;
+mod theme;
 mod tui;
 
 fn main() -> anyhow::Result<()> {

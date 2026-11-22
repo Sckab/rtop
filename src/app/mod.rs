@@ -12,6 +12,7 @@ use crate::{
         temperature::{Temperature, TemperatureState},
         workers,
     },
+    theme::Theme,
     tui::NETWORK_PANEL_PERCENT,
 };
 
@@ -34,6 +35,7 @@ pub struct App {
     pub sortings: Sortings,
     pub io: Io,
     pub size_formatter: Box<dyn Fn(u64) -> String>,
+    pub theme: Theme,
 }
 
 impl App {
@@ -57,6 +59,7 @@ impl App {
             sortings: Sortings::default(),
             io: Io::default(),
             size_formatter: Box::new(humansize::make_format(humansize::DECIMAL)),
+            theme: Theme::default(),
         }
     }
 

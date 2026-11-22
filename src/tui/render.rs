@@ -57,19 +57,23 @@ impl crate::app::App {
 
         match &mut self.state.mode {
             Mode::Help { scroll } => {
-                super::help::render_help_panel(self.keys.clone(), area, buf, scroll)
+                super::help::render_help_panel(&self.theme, self.keys.clone(), area, buf, scroll)
             }
-            Mode::ConfirmKill { request } => {
-                super::popups::render_kill_confirmation(&request.name, &request.pid, area, buf)
-            }
+            Mode::ConfirmKill { request } => super::popups::render_kill_confirmation(
+                &self.theme,
+                &request.name,
+                &request.pid,
+                area,
+                buf,
+            ),
             Mode::Search { text_area } => {
-                super::filter::render_process_filter_input(text_area, body_area, buf);
+                super::filter::render_process_filter_input(&self.theme, text_area, body_area, buf);
             }
             _ => {}
         }
 
         if let Some(toast) = &self.toast {
-            super::popups::render_toast(&toast.message, area, buf);
+            super::popups::render_toast(&self.theme, &toast.message, area, buf);
         }
     }
 }

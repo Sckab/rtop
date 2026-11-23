@@ -14,6 +14,11 @@ pub struct Info {
     pub kernel: String,
     pub uptime: String,
     pub shell: String,
+    pub font: String,
+    pub locale: String,
+    pub packages: String,
+    pub icons: String,
+    pub ip: String,
     pub cpu: String,
     pub frequency: String,
     pub gpus: Vec<retch_sysinfo::gpu::GpuInfo>,
@@ -43,6 +48,31 @@ impl Info {
         let system = sysinfo::System::new_all()?;
         let disks = sysinfo::Disks::new_with_refreshed_list()?;
 
+        let extras =
+            retch_sysinfo::fetch::SystemInfo::collect(retch_sysinfo::fetch::CollectOptions {
+                fields: Some(vec![
+                    "font".to_string(),
+                    "icons".to_string(),
+                    "locale".to_string(),
+                    "packages".to_string(),
+                    "net".to_string(),
+                ]),
+                ..Default::default()
+            })?;
+
+        let font = extras.font.unwrap_or_else(|| "Unknown".to_string());
+        let icons = extras.icons.unwrap_or_else(|| "Unknown".to_string());
+        let packages = extras.packages.unwrap_or_else(|| "Unknown".to_string());
+        let locale = extras
+            .locale
+            .or_else(|| std::env::var("LANG").ok().filter(|value| !value.is_empty()))
+            .unwrap_or_else(|| "Unknown".to_string());
+        let ip = match (extras.local_ip, extras.active_interface) {
+            (Some(ip), Some(interface)) => format!("{ip} ({interface})"),
+            (Some(ip), None) => ip,
+            _ => "Unknown".to_string(),
+        };
+
         let mut frequency = 0_u64;
 
         for cpu in system.cpus() {
@@ -63,6 +93,11 @@ impl Info {
             kernel: sysinfo::System::kernel_long_version()?,
             uptime,
             shell: whattheshell::Shell::infer()?.to_string(),
+            font,
+            locale,
+            packages,
+            icons,
+            ip,
             cpu: format!(
                 "{} @ {}",
                 system.cpus()[0].brand().to_string(),
@@ -124,6 +159,7 @@ impl Info {
         let mut rows = vec![
             get_row(theme.primary, "OS", &self.os),
             get_row(theme.primary, "Kernel", &self.kernel),
+            get_row(theme.primary, "Packages", &self.packages),
             get_row(theme.primary, "Uptime", &self.uptime),
             get_row(theme.primary, "Shell", &self.shell),
         ];
@@ -196,6 +232,10 @@ impl Info {
         rows.append(&mut vec![
             get_row(theme.primary, "Terminal", &self.terminal),
             get_row(theme.primary, "WM", &self.wm),
+            get_row(theme.primary, "Font", &self.font),
+            get_row(theme.primary, "Locale", &self.locale),
+            get_row(theme.primary, "Icons", &self.icons),
+            get_row(theme.primary, "IP", &self.ip),
         ]);
 
         rows

@@ -26,8 +26,8 @@ fn main() -> anyhow::Result<()> {
 
     if let Some(command) = args.command {
         match command {
-            cli::Commands::Fetch => {
-                fetch::fetch(theme)?;
+            cli::Commands::Fetch { logo } => {
+                fetch::fetch(theme, logo.as_deref())?;
             }
         }
     } else {

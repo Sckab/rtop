@@ -31,5 +31,36 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Outputs all the system information with an ASCII art of the OS
-    Fetch,
+    Fetch {
+        /// Force a logo instead of the one detected for the current OS
+        #[arg(
+            short,
+            long,
+            value_name = "LOGO",
+            value_parser = clap::builder::PossibleValuesParser::new(
+                crate::fetch::LOGO_NAMES.iter().copied()
+            ),
+        )]
+        logo: Option<String>,
+    },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fetch_accepts_logo_flag() {
+        let args = Cli::try_parse_from(["rtop", "fetch", "-l", "windows"]).unwrap();
+
+        assert!(matches!(
+            args.command,
+            Some(Commands::Fetch { logo: Some(logo) }) if logo == "windows"
+        ));
+    }
+
+    #[test]
+    fn fetch_rejects_unknown_logo() {
+        assert!(Cli::try_parse_from(["rtop", "fetch", "--logo", "nope"]).is_err());
+    }
 }

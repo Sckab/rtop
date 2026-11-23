@@ -29,6 +29,7 @@ can be terminated.
 - **Kill processes** — with a confirmation prompt, a start-time check to avoid killing a recycled PID, and an error toast if the operation fails.
 - **Vim-style keybindings** — `j`/`k`/`g`/`G` for navigation in the focused panel, `K`/`J`/`H`/`L` to move focus between panels, `h`/`?` for the scrollable help, `q` to quit, plus `Alt`-based sorting.
 - **Customizable themes** — colors for panels, tables, graphs, and selection can be overridden with an optional TOML theme file; see [Themes](#themes).
+- **Fetch mode** — `rtop fetch` prints a one-shot system summary with the detected OS logo.
 - **Responsive layout** — per-core CPU stats are laid out in multiple columns based on terminal width.
 - **Non-blocking sampling** — system data is collected on background threads, so the UI stays responsive.
 
@@ -65,11 +66,13 @@ cargo install --git https://github.com/Sckab/rtop.git
 
 ```bash
 rtop
+rtop fetch
 ```
 
 RTOP starts in the alternate screen and exits with `q` or `Esc`. It accepts
 `-t`/`--theme-file <PATH>` to load a theme from a custom path; by default it
-reads the platform configuration path described in [Themes](#themes).
+reads the platform configuration path described in [Themes](#themes). Use
+`rtop fetch` for a one-shot system summary; see [Fetch](#fetch).
 
 ### Themes
 
@@ -125,6 +128,44 @@ value (`"#ff8800"`), or an RGB triplet (`"rgb(255, 136, 0)"`).
 | `rx`, `tx`                                       | Network RX/TX labels and graph lines                         |
 | `memory_used`, `memory_available`, `memory_free` | Memory labels and graph lines                                |
 | `cpu_graph`                                      | CPU history graph line                                       |
+
+### Fetch
+
+```bash
+rtop fetch
+```
+
+`rtop fetch` prints a one-shot system summary and exits: user and host, OS,
+kernel, packages, uptime, shell, displays, CPU, frequency, GPUs, memory, swap,
+disks, terminal, window manager, font, locale, icons, and IP. It renders inline
+instead of taking over the alternate screen, so it works well in screenshots and
+shell startup output.
+
+The detected distribution is drawn next to the summary with its ASCII logo and
+brand colors. Logos support per-character colors and fall back to Tux on
+unsupported systems.
+
+#### Choosing a logo
+
+By default the logo is detected from the current OS. Use `-l`/`--logo` to force a
+specific one:
+
+```bash
+rtop fetch --logo windows
+rtop fetch -l arch
+```
+
+Available names (case-insensitive):
+
+`almalinux`, `alpine`, `arch`, `centos`, `debian`, `endeavouros`, `fedora`,
+`freebsd`, `gentoo`, `kali`, `linux`, `macos`, `manjaro`, `mint`, `nixos`,
+`opensuse`, `popos`, `redhat`, `rocky`, `tux`, `ubuntu`, `void`, `windows`.
+
+`linux` is an alias for `tux`. An unknown name is rejected with an error that
+lists the valid values; the same list is shown by `rtop fetch --help`. The flag
+only affects `fetch` — the interactive interface has no logo. The optional
+`-t`/`--theme-file` option changes the colors of the summary text, not of the
+logo, which keeps its own brand colors.
 
 ### Keybindings
 

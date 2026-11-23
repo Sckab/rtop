@@ -11,18 +11,26 @@ use std::io::stdout;
 mod get_distro_logo;
 mod get_maximum_frequency;
 mod info;
+mod logo;
+
+pub use get_distro_logo::LOGO_NAMES;
 
 use crate::theme::{Theme, color::Color};
 
-pub fn fetch(theme: Theme) -> anyhow::Result<()> {
-    let distro_logo = get_distro_logo::get_distro_logo();
+pub fn fetch(theme: Theme, logo_name: Option<&str>) -> anyhow::Result<()> {
+    let distro_logo = match logo_name {
+        Some(name) => get_distro_logo::get_logo(name)
+            .ok_or_else(|| anyhow::anyhow!("unknown logo: {name}"))?,
+        None => get_distro_logo::get_distro_logo(),
+    };
 
     let (color, art) = distro_logo.split_once('\n').unwrap();
 
     let color = Color::try_from(color.to_string())?;
-    let longest_line = art.lines().map(|l| l.len()).max().unwrap_or(0);
+    let logo = logo::parse(art, color)?;
+    let longest_line = logo.iter().map(|line| line.width()).max().unwrap_or(0);
 
-    let height = art.lines().count() as u16;
+    let height = logo.len() as u16;
 
     let formatter = humansize::make_format(humansize::DECIMAL);
 
@@ -47,7 +55,7 @@ pub fn fetch(theme: Theme) -> anyhow::Result<()> {
         ])
         .areas(area);
 
-        Paragraph::new(art).fg(color).render(art_area, buf);
+        Paragraph::new(logo).render(art_area, buf);
 
         let [header, divider, table] = Layout::vertical([
             Constraint::Length(1),

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use clap::Parser;
 use clap::builder::styling::AnsiColor;
+use clap::{Parser, Subcommand};
 
 use crate::theme;
 
@@ -16,9 +16,20 @@ const CLI_STYLING: clap::builder::styling::Styles = clap::builder::styling::Styl
 #[command(about = "A Rust TOP command")]
 #[command(styles = CLI_STYLING)]
 pub struct Cli {
+    /// Sets the theme file
     #[arg(short, long, default_value_os_t = theme::get_default_path())]
     pub theme_file: PathBuf,
 
+    /// Print the current theme
     #[arg(short, long)]
     pub print_theme: bool,
+
+    #[command(subcommand)]
+    pub command: Option<Commands>,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Commands {
+    /// Outputs all the system information with an ASCII art of the OS
+    Fetch,
 }
